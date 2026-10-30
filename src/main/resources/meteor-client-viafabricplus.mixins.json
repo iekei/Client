@@ -1,8 +1,8 @@
 {
   "required": false,
-  "package": "meteordevelopment.meteorclient.mixin.viafabricplus",
+  "package": "iekeidevelopment.iekeiclient.mixin.viafabricplus",
   "compatibilityLevel": "JAVA_21",
-  "plugin": "meteordevelopment.meteorclient.MixinPlugin",
+  "plugin": "iekeidevelopment.iekeiclient.MixinPlugin",
   "client": [
     "GeneralSettingsMixin"
   ],

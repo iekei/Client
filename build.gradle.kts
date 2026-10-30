@@ -185,7 +185,7 @@ tasks {
         from(sourceSets["launcher"].output)
 
         manifest {
-            attributes["Main-Class"] = "meteordevelopment.meteorclient.Main"
+            attributes["Main-Class"] = "iekeidevelopment.iekeiclient.Main"
         }
     }
 

@@ -10,20 +10,20 @@
     "seasnail"
   ],
   "contact": {
-    "homepage": "https://meteorclient.com",
+    "homepage": "https://iekeiclient.com",
     "issues": "https://github.com/MeteorDevelopment/meteor-client/issues",
     "sources": "https://github.com/MeteorDevelopment/meteor-client",
-    "discord": "https://meteorclient.com/discord"
+    "discord": "https://iekeiclient.com/discord"
   },
   "license": "GPL-3.0",
   "icon": "assets/meteor-client/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "meteordevelopment.meteorclient.MeteorClient"
+      "iekeidevelopment.iekeiclient.IekeiClient"
     ],
     "modmenu": [
-      "meteordevelopment.meteorclient.modintegration.ModMenuIntegration"
+      "iekeidevelopment.iekeiclient.modintegration.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -41,11 +41,11 @@
     "meteor-client:commit": "${commit}",
     "modmenu": {
       "links": {
-        "modmenu.discord": "https://meteorclient.com/discord"
+        "modmenu.discord": "https://iekeiclient.com/discord"
       }
     },
     "badoptimizations:cache_hooks": {
-      "lightmap": "meteordevelopment.meteorclient.modintegration.BadOptimizationsHook"
+      "lightmap": "iekeidevelopment.iekeiclient.modintegration.BadOptimizationsHook"
     }
   },
   "depends": {

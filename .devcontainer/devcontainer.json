@@ -1,0 +1,22 @@
+{
+  "name": "Minecraft Mod Dev (Browser GUI)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-gradle"
+      ]
+    }
+  },
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "Minecraft Screen (noVNC)",
+      "onAutoForward": "notify"
+    }
+  },
+  "postStartCommand": "nohup Xvfb :1 -screen 0 1024x768x24 & sleep 1 && nohup fluxbox & sleep 1 && nohup x11vnc -display :1 -nopw -forever -shared & sleep 1 && nohup websockify --web /usr/share/novnc 6080 localhost:5900 &"
+}

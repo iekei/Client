@@ -9,7 +9,7 @@ categories:
 
       Please do not open issues asking when Meteor will update to a new Minecraft version. Maintainers work
       on Meteor in their spare time, and updates are not guaranteed. New versions of Meteor are released
-      when they are ready. Follow the [Discord](https://meteorclient.com/discord) or watch the repository
+      when they are ready. Follow the [Discord](https://iekeiclient.com/discord) or watch the repository
       for announcements.
 
   - name: "old-versions"
@@ -21,7 +21,7 @@ categories:
     message: >
       ### This issue is being automatically closed.
 
-      Meteor only supports the latest version of Minecraft. Our [archive page](https://www.meteorclient.com/archive)
+      Meteor only supports the latest version of Minecraft. Our [archive page](https://www.iekeiclient.com/archive)
       stores major Meteor versions starting at 1.21.4 and the most recent dev builds can be obtained from our Maven.
       No support is provided for building or running old versions of Meteor - you will have to troubleshoot any
       issues you encounter yourself.
@@ -101,7 +101,7 @@ categories:
       ### This issue is being automatically closed.
 
       This does not appear to be a bug report or feature request. For general questions and discussion,
-      please use the [community discord](https://meteorclient.com/discord) instead.
+      please use the [community discord](https://iekeiclient.com/discord) instead.
 
   - name: "incomplete"
     description: >

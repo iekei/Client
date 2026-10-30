@@ -1,0 +1,12 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
+package iekeidevelopment.iekeiclient.gui.utils;
+
+import iekeidevelopment.iekeiclient.gui.GuiTheme;
+
+public interface BaseWidget {
+    GuiTheme getTheme();
+}
