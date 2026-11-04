@@ -14,7 +14,7 @@ import static org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER;
 
 import org.lwjgl.opengl.GL30C;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.opengl.GlStateManager;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.Window;
@@ -38,26 +38,29 @@ public class Framebuffer {
 	private void init() {
 
 		Window window = MinecraftClient.getInstance().getWindow();
+		int previousFramebuffer = ShaderHelper.getBoundFramebuffer();
 
-		id = GlStateManager.glGenFramebuffers();
-		bind();
+		try {
+			id = GlStateManager.glGenFramebuffers();
+			bind();
 
-		texture = GlStateManager._genTexture();
-		ShaderHelper.bindTexture(texture);
-		ShaderHelper.defaultPixelStore();
+			texture = GlStateManager._genTexture();
+			ShaderHelper.bindTexture(texture);
+			ShaderHelper.defaultPixelStore();
 
-		ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			ShaderHelper.textureParam(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		width = (int) (window.getFramebufferWidth() * sizeMulti);
-		height = (int) (window.getFramebufferHeight() * sizeMulti);
+			width = (int) (window.getFramebufferWidth() * sizeMulti);
+			height = (int) (window.getFramebufferHeight() * sizeMulti);
 
-		ShaderHelper.textureImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, null);
-		ShaderHelper.framebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-
-		unbind();
+			ShaderHelper.textureImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, null);
+			ShaderHelper.framebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+		} finally {
+			ShaderHelper.bindFramebuffer(previousFramebuffer);
+		}
 	}
 
 	public void bind() {
@@ -66,10 +69,6 @@ public class Framebuffer {
 
 	public void setViewport() {
 		ShaderHelper.viewport(0, 0, width, height);
-	}
-
-	public void unbind() {
-		MinecraftClient.getInstance().getFramebuffer().beginWrite(false);
 	}
 
 	public void resize() {

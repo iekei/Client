@@ -10,8 +10,11 @@ import com.iekeiclient.libraries.browser.JCefBrowser;
 import com.iekeiclient.management.mod.impl.hud.WebBrowserMod;
 import com.iekeiclient.utils.mouse.MouseUtils;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 
 @Mixin(ChatScreen.class)
@@ -25,23 +28,23 @@ public class MixinChatScreen extends Screen {
 	}
 
 	@Inject(method = "mouseClicked", at = @At("HEAD"))
-	private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+	private void onMouseClicked(Click click, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
 
 		if (JCefBrowser.getBrowser() != null) {
-			JCefBrowser.getBrowser().sendMousePress(WebBrowserMod.getInstance().getMouseX(mouseX),
-					WebBrowserMod.getInstance().getMouseY(mouseY), button);
+			JCefBrowser.getBrowser().sendMousePress(WebBrowserMod.getInstance().getMouseX(click.x()),
+					WebBrowserMod.getInstance().getMouseY(click.y()), click.button());
 			JCefBrowser.getBrowser().setFocus(true);
 		}
 	}
 
 	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+	public boolean mouseReleased(Click click) {
 		if (JCefBrowser.getBrowser() != null) {
-			JCefBrowser.getBrowser().sendMouseRelease(WebBrowserMod.getInstance().getMouseX(mouseX),
-					WebBrowserMod.getInstance().getMouseY(mouseY), button);
+			JCefBrowser.getBrowser().sendMouseRelease(WebBrowserMod.getInstance().getMouseX(click.x()),
+					WebBrowserMod.getInstance().getMouseY(click.y()), click.button());
 			JCefBrowser.getBrowser().setFocus(true);
 		}
-		return super.mouseReleased(mouseX, mouseY, button);
+		return super.mouseReleased(click);
 	}
 
 	@Override
@@ -68,9 +71,9 @@ public class MixinChatScreen extends Screen {
 	}
 
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-	private void onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
+	private void onKeyPressed(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
 		if (JCefBrowser.getBrowser() != null) {
-			JCefBrowser.getBrowser().sendKeyPress(keyCode, scanCode, modifiers);
+			JCefBrowser.getBrowser().sendKeyPress(input.key(), input.scancode(), input.modifiers());
 			JCefBrowser.getBrowser().setFocus(true);
 			if(isInWebBrowser) {
 				cir.setReturnValue(true);
@@ -79,32 +82,32 @@ public class MixinChatScreen extends Screen {
 	}
 
 	@Override
-	public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+	public boolean keyReleased(KeyInput input) {
 		if (JCefBrowser.getBrowser() != null) {
-			JCefBrowser.getBrowser().sendKeyRelease(keyCode, scanCode, modifiers);
+			JCefBrowser.getBrowser().sendKeyRelease(input.key(), input.scancode(), input.modifiers());
 			JCefBrowser.getBrowser().setFocus(true);
 			if(isInWebBrowser) {
 				return true;
 			}
 		}
-		return super.keyReleased(keyCode, scanCode, modifiers);
+		return super.keyReleased(input);
 	}
 
 	@Override
-	public boolean charTyped(char codePoint, int modifiers) {
+	public boolean charTyped(CharInput input) {
 
-		if (codePoint == (char) 0) {
+		if (!input.isValidChar()) {
 			return false;
 		}
 
 		if (JCefBrowser.getBrowser() != null) {
-			JCefBrowser.getBrowser().sendKeyTyped(codePoint, modifiers);
+			JCefBrowser.getBrowser().sendKeyTyped((char) input.codepoint(), input.modifiers());
 			JCefBrowser.getBrowser().setFocus(true);
 			if(isInWebBrowser) {
 				return true;
 			}
 		}
 
-		return super.charTyped(codePoint, modifiers);
+		return super.charTyped(input);
 	}
 }

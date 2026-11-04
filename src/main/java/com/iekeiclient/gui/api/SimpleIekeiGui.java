@@ -4,8 +4,11 @@ import com.iekeiclient.skia.Skia;
 import com.iekeiclient.skia.context.SkiaContext;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 
 public class SimpleIekeiGui {
@@ -64,16 +67,16 @@ public class SimpleIekeiGui {
 			}
 
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
-				SimpleIekeiGui.this.mousePressed(mcScale ? mouseX : client.mouse.getX(),
-						mcScale ? mouseY : client.mouse.getY(), button);
+			public boolean mouseClicked(Click click, boolean doubleClick) {
+				SimpleIekeiGui.this.mousePressed(mcScale ? click.x() : client.mouse.getX(),
+						mcScale ? click.y() : client.mouse.getY(), click.button());
 				return true;
 			}
 
 			@Override
-			public boolean mouseReleased(double mouseX, double mouseY, int button) {
-				SimpleIekeiGui.this.mouseReleased(mcScale ? mouseX : client.mouse.getX(),
-						mcScale ? mouseY : (int) client.mouse.getY(), button);
+			public boolean mouseReleased(Click click) {
+				SimpleIekeiGui.this.mouseReleased(mcScale ? click.x() : client.mouse.getX(),
+						mcScale ? click.y() : (int) client.mouse.getY(), click.button());
 				return true;
 			}
 
@@ -85,14 +88,14 @@ public class SimpleIekeiGui {
 			}
 
 			@Override
-			public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-				SimpleIekeiGui.this.keyPressed(keyCode, scanCode, modifiers);
+			public boolean keyPressed(KeyInput input) {
+				SimpleIekeiGui.this.keyPressed(input.key(), input.scancode(), input.modifiers());
 				return true;
 			}
 
 			@Override
-			public boolean charTyped(char chr, int modifiers) {
-				SimpleIekeiGui.this.charTyped(chr, modifiers);
+			public boolean charTyped(CharInput input) {
+				SimpleIekeiGui.this.charTyped((char) input.codepoint(), input.modifiers());
 				return true;
 			}
 

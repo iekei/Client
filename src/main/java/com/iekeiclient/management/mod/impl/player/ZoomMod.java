@@ -15,6 +15,7 @@ import com.iekeiclient.management.mod.settings.impl.NumberSetting;
 import com.iekeiclient.skia.font.Icon;
 
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.input.KeyInput;
 
 public class ZoomMod extends Mod {
 
@@ -38,7 +39,7 @@ public class ZoomMod extends Mod {
 	private BooleanSetting smoothCameraSetting = new BooleanSetting("setting.smoothcamera",
 			"setting.smoothcamera.description", Icon.MOTION_BLUR, this, true);
 	private KeybindSetting keybindSetting = new KeybindSetting("setting.keybind", "setting.keybind.description",
-			Icon.KEYBOARD, this, InputUtil.fromKeyCode(GLFW.GLFW_KEY_C, 0));
+			Icon.KEYBOARD, this, InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_C, 0, 0)));
 
 	public ZoomMod() {
 		super("mod.zoom.name", "mod.zoom.description", Icon.ZOOM_IN, ModCategory.PLAYER);

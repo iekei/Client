@@ -14,6 +14,7 @@ import static org.lwjgl.opengl.GL11C.glDisable;
 import static org.lwjgl.opengl.GL11C.glEnable;
 import static org.lwjgl.opengl.GL11C.glLineWidth;
 import static org.lwjgl.opengl.GL11C.glTexImage2D;
+import static org.lwjgl.opengl.GL11C.glBlendFunc;
 import static org.lwjgl.opengl.GL12C.GL_UNPACK_IMAGE_HEIGHT;
 import static org.lwjgl.opengl.GL12C.GL_UNPACK_SKIP_IMAGES;
 import static org.lwjgl.opengl.GL13C.GL_TEXTURE0;
@@ -25,14 +26,19 @@ import static org.lwjgl.opengl.GL20C.glUniform2f;
 import static org.lwjgl.opengl.GL20C.glUniform3f;
 import static org.lwjgl.opengl.GL20C.glUniform3fv;
 import static org.lwjgl.opengl.GL20C.glUniform4f;
+import static org.lwjgl.opengl.GL20C.glUniformMatrix4fv;
+import static org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER_BINDING;
+import static org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER;
 
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.iekeiclient.mixin.mixins.minecraft.client.render.BufferRendererAccessor;
+import com.mojang.blaze3d.opengl.GlStateManager;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.GlTexture;
 import net.minecraft.client.texture.AbstractTexture;
+import com.mojang.blaze3d.textures.GpuTexture;
 import net.minecraft.util.Identifier;
 
 public class ShaderHelper {
@@ -45,7 +51,6 @@ public class ShaderHelper {
 
 	public static void bindVertexArray(int vao) {
 		GlStateManager._glBindVertexArray(vao);
-		BufferRendererAccessor.setCurrentVertexBuffer(null);
 	}
 
 	public static void bindIndexBuffer(int ibo) {
@@ -112,6 +117,10 @@ public class ShaderHelper {
 		glUniform3fv(location, v);
 	}
 
+	public static void uniformMatrix4(int location, FloatBuffer matrix) {
+		glUniformMatrix4fv(location, false, matrix);
+	}
+
 	public static void pixelStore(int name, int param) {
 		GlStateManager._pixelStore(name, param);
 	}
@@ -150,7 +159,7 @@ public class ShaderHelper {
 
 	public static void enableBlend() {
 		GlStateManager._enableBlend();
-		GlStateManager._blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 
 	public static void disableBlend() {
@@ -176,7 +185,7 @@ public class ShaderHelper {
 
 	public static void bindTexture(Identifier id) {
 		AbstractTexture texture = MinecraftClient.getInstance().getTextureManager().getTexture(id);
-		bindTexture(texture.getGlId(), 0);
+		bindTexture(getTextureId(texture.getGlTexture()), 0);
 	}
 
 	public static void bindTexture(int i, int slot) {
@@ -186,6 +195,21 @@ public class ShaderHelper {
 
 	public static void bindTexture(int i) {
 		bindTexture(i, 0);
+	}
+
+	public static int getTextureId(GpuTexture texture) {
+		if (texture instanceof GlTexture glTexture) {
+			return glTexture.getGlId();
+		}
+		throw new IllegalStateException("Expected an OpenGL-backed Minecraft texture");
+	}
+
+	public static int getBoundFramebuffer() {
+		return GlStateManager._getInteger(GL_FRAMEBUFFER_BINDING);
+	}
+
+	public static void bindFramebuffer(int framebuffer) {
+		GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	}
 
 	public static void resetTextureSlot() {

@@ -13,8 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.opengl.GlStateManager;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -24,6 +23,7 @@ import net.minecraft.util.Identifier;
 public class Shader {
 
 	private static final FloatBuffer MAT = BufferUtils.createFloatBuffer(4 * 4);
+	private static final Matrix4f IDENTITY_MATRIX = new Matrix4f();
 
 	public static Shader BOUND;
 
@@ -101,11 +101,11 @@ public class Shader {
 
 	public void set(String name, Matrix4f mat) {
 		mat.get(MAT);
-		GlStateManager._glUniformMatrix4(getLocation(name), false, MAT);
+		ShaderHelper.uniformMatrix4(getLocation(name), MAT);
 	}
 
 	public void setDefaults() {
-		set("u_Proj", RenderSystem.getProjectionMatrix());
-		set("u_ModelView", RenderSystem.getModelViewStack());
+		set("u_Proj", IDENTITY_MATRIX);
+		set("u_ModelView", IDENTITY_MATRIX);
 	}
 }

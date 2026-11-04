@@ -13,6 +13,7 @@ import com.iekeiclient.management.mod.impl.player.OldAnimationsMod;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.render.RenderTickCounter;
 
 @Mixin(InGameHud.class)
@@ -23,7 +24,7 @@ public class MixinInGameHud {
 		
     	OldAnimationsMod mod = OldAnimationsMod.getInstance();
     	
-		context.drawGuiTexture(RenderLayer::getGuiTextured, type.getTexture(hardcore, half, mod.isEnabled() && mod.isDisableHeartFlash() ? false : blinking), x, y, 9, 9);
+		context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, type.getTexture(hardcore, half, mod.isEnabled() && mod.isDisableHeartFlash() ? false : blinking), x, y, 9, 9);
 	}
     
 	@Inject(method = "renderMainHud", at = @At("TAIL"))

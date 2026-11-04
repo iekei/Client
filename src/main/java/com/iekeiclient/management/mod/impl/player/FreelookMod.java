@@ -14,6 +14,7 @@ import com.iekeiclient.management.mod.settings.impl.KeybindSetting;
 import com.iekeiclient.skia.font.Icon;
 
 import net.minecraft.client.option.Perspective;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.InputUtil;
 
 public class FreelookMod extends Mod {
@@ -28,7 +29,7 @@ public class FreelookMod extends Mod {
 	private BooleanSetting toggleSetting = new BooleanSetting("setting.toggle", "setting.toggle.description",
 			Icon.SWITCH, this, false);
 	private KeybindSetting keybindSetting = new KeybindSetting("setting.keybind", "setting.keybind.description",
-			Icon.KEYBOARD, this, InputUtil.fromKeyCode(GLFW.GLFW_KEY_B, 0));
+			Icon.KEYBOARD, this, InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_B, 0, 0)));
 
 	public FreelookMod() {
 		super("mod.freelook.name", "mod.freelook.description", Icon._360, ModCategory.PLAYER);

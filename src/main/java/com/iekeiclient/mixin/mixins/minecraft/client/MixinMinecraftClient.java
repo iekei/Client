@@ -99,7 +99,7 @@ public abstract class MixinMinecraftClient implements IMixinMinecraftClient {
 
 					if (!this.world.getBlockState(blockPos).isAir()) {
 						Direction direction = blockHitResult.getSide();
-						this.particleManager.addBlockBreakingParticles(blockPos, direction);
+						this.world.spawnBlockBreakingParticle(blockPos, direction);
 						((IMixinLivingEntity) player).fakeSwingHand(Hand.MAIN_HAND);
 					}
 				}
@@ -138,6 +138,7 @@ public abstract class MixinMinecraftClient implements IMixinMinecraftClient {
 
 	@Inject(method = "onResolutionChanged", at = @At("TAIL"))
 	public void onResolutionChanged(CallbackInfo info) {
+		SkiaContext.createSurface(window.getFramebufferWidth(), window.getFramebufferHeight());
 		KawaseBlur.GUI_BLUR.resize();
 		KawaseBlur.INGAME_BLUR.resize();
 	}

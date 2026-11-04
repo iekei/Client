@@ -11,7 +11,6 @@ import com.iekeiclient.skia.font.Icon;
 
 import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleType;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.math.Box;
 
@@ -31,8 +30,8 @@ public class ProjectileTrailMod extends Mod {
 
 		if (client.player != null && client.world != null) {
 
-			Box box = new Box(client.player.getPos().add(-150.0, -150.0, -150.0),
-					client.player.getPos().add(150.0, 150.0, 150.0));
+			Box box = new Box(client.player.getLerpedPos(1).add(-150.0, -150.0, -150.0),
+					client.player.getLerpedPos(1).add(150.0, 150.0, 150.0));
 
 			for (ProjectileEntity projectile : client.world.getEntitiesByClass(ProjectileEntity.class, box,
 					entity -> true)) {
@@ -43,17 +42,17 @@ public class ProjectileTrailMod extends Mod {
 					continue;
 				}
 
-				ParticleType<?> type = getCurrentType();
+				ParticleEffect type = getCurrentType();
 
-				if (type != null && type instanceof ParticleEffect) {
-					client.world.addParticle((ParticleEffect) type, projectile.getX(), projectile.getY(),
+				if (type != null) {
+					client.particleManager.addParticle(type, projectile.getX(), projectile.getY(),
 							projectile.getZ(), 0.0, 0.0, 0.0);
 				}
 			}
 		}
 	};
 
-	private ParticleType<?> getCurrentType() {
+	private ParticleEffect getCurrentType() {
 
 		String option = effectSetting.getOption();
 

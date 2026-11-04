@@ -9,6 +9,7 @@ import com.iekeiclient.utils.TimerUtils;
 
 import it.unimi.dsi.fastutil.ints.IntDoubleImmutablePair;
 import net.minecraft.client.MinecraftClient;
+import com.iekeiclient.shader.ShaderHelper;
 
 public class KawaseBlur {
 
@@ -40,6 +41,7 @@ public class KawaseBlur {
 	}
 
 	public void draw(int radius) {
+		int mainFramebuffer = ShaderHelper.getBoundFramebuffer();
 
 		if (shaderDown == null) {
 			shaderDown = new Shader("blur.vert", "blur_down.frag");
@@ -72,7 +74,7 @@ public class KawaseBlur {
 
 		PostProcessRenderer.beginRender();
 
-		renderToFbo(fbos[0], MinecraftClient.getInstance().getFramebuffer().getColorAttachment(), shaderDown,
+		renderToFbo(fbos[0], ShaderHelper.getTextureId(MinecraftClient.getInstance().getFramebuffer().getColorAttachment()), shaderDown,
 				offset);
 
 		for (int i = 0; i < iterations; i++) {
@@ -83,7 +85,7 @@ public class KawaseBlur {
 			renderToFbo(fbos[i - 1], fbos[i].texture, shaderUp, offset);
 		}
 
-		MinecraftClient.getInstance().getFramebuffer().beginWrite(true);
+		ShaderHelper.bindFramebuffer(mainFramebuffer);
 		shaderPassthrough.bind();
 		ShaderHelper.bindTexture(fbos[0].texture);
 		shaderPassthrough.set("uTexture", 0);

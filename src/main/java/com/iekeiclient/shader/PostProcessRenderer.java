@@ -15,7 +15,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL32C;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.opengl.GlStateManager;
 
 import net.minecraft.client.util.math.MatrixStack;
 

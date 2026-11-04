@@ -13,6 +13,7 @@ import com.iekeiclient.skia.font.Icon;
 import com.iekeiclient.utils.TimerUtils;
 
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.input.KeyInput;
 
 public class StopwatchMod extends SimpleHUDMod {
 
@@ -22,7 +23,7 @@ public class StopwatchMod extends SimpleHUDMod {
 	private DecimalFormat timeFormat = new DecimalFormat("0.00");
 
 	private KeybindSetting keybindSetting = new KeybindSetting("setting.keybind", "setting.keybind.description",
-			Icon.KEYBOARD, this, InputUtil.fromKeyCode(GLFW.GLFW_KEY_P, 0));
+			Icon.KEYBOARD, this, InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_P, 0, 0)));
 
 	public StopwatchMod() {
 		super("mod.stopwatch.name", "mod.stopwatch.description", Icon.TIMER);

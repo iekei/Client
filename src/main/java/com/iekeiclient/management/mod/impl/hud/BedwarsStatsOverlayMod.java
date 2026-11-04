@@ -52,15 +52,15 @@ public class BedwarsStatsOverlayMod extends HUDMod {
 					continue;
 				}
 
-				String name = player.getProfile().getName();
-				String uuid = player.getProfile().getId().toString().replace("-", "");
+				String name = player.getProfile().name();
+				String uuid = player.getProfile().id().toString().replace("-", "");
 				HypixelUser hypixelUser = Iekei.getInstance().getHypixelManager().getByUuid(uuid);
 
 				if (hypixelUser != null) {
 
 					if (player.getSkinTextures() != null) {
 
-						File file = SkinUtils.getSkin(player.getSkinTextures().texture());
+						File file = SkinUtils.getSkin(player.getSkinTextures().body().texturePath());
 
 						if (file.exists()) {
 							Skia.drawPlayerHead(file, getX() + 5.5F, getY() + offsetY, 12, 12, 2.5F);

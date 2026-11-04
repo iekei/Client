@@ -57,8 +57,8 @@ public class WebSocketManager {
                         HttpUtils.postJson("https://sessionserver.mojang.com/session/minecraft/join", postObject);
                         
                         Map<String, String> headers = new HashMap<>();
-                        headers.put("name", gameProfile.getName());
-                        headers.put("uuid", gameProfile.getId().toString().replace("-", ""));
+                        headers.put("name", gameProfile.name());
+                        headers.put("uuid", gameProfile.id().toString().replace("-", ""));
                         
                         try {
                             webSocket = new IekeiWebSocketClient(headers, () -> {

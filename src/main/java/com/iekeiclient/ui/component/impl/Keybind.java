@@ -12,6 +12,7 @@ import com.iekeiclient.ui.component.handler.impl.KeybindHandler;
 import com.iekeiclient.utils.mouse.MouseUtils;
 
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.input.KeyInput;
 
 public class Keybind extends Component {
 
@@ -77,7 +78,7 @@ public class Keybind extends Component {
 	@Override
 	public void keyPressed(int keyCode, int scanCode, int modifiers) {
 		if (binding) {
-			setKeyCode(InputUtil.fromKeyCode(keyCode, scanCode));
+			setKeyCode(InputUtil.fromKeyCode(new KeyInput(keyCode, scanCode, modifiers)));
 			this.binding = false;
 		}
 	}

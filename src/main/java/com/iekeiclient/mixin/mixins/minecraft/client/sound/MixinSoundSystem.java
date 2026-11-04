@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.iekeiclient.management.mod.impl.player.OldAnimationsMod;
 
@@ -25,12 +25,13 @@ public class MixinSoundSystem {
 			SoundEvents.ENTITY_PLAYER_ATTACK_STRONG.id(), SoundEvents.ENTITY_PLAYER_ATTACK_WEAK.id(),
 			SoundEvents.ENTITY_PLAYER_ATTACK_NODAMAGE.id());
 
-	@Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)V", at = @At("HEAD"), cancellable = true)
-	public void oldAnimations$disableNewPvPSounds(SoundInstance sound, CallbackInfo ci) {
+	@Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)Lnet/minecraft/client/sound/SoundSystem$PlayResult;", at = @At("HEAD"), cancellable = true)
+	public void oldAnimations$disableNewPvPSounds(SoundInstance sound,
+			CallbackInfoReturnable<SoundSystem.PlayResult> cir) {
 
 		if (OldAnimationsMod.getInstance().isEnabled() && OldAnimationsMod.getInstance().isOldPvPSounds()
 				&& newPvPSounds.contains(sound.getId())) {
-			ci.cancel();
+			cir.setReturnValue(SoundSystem.PlayResult.NOT_STARTED);
 			return;
 		}
 	}

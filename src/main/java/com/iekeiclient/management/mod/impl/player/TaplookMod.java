@@ -14,6 +14,7 @@ import com.iekeiclient.management.mod.settings.impl.KeybindSetting;
 import com.iekeiclient.skia.font.Icon;
 
 import net.minecraft.client.option.Perspective;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.InputUtil;
 
 public class TaplookMod extends Mod {
@@ -27,7 +28,7 @@ public class TaplookMod extends Mod {
 	private BooleanSetting toggleSetting = new BooleanSetting("setting.toggle", "setting.toggle.description",
 			Icon.SWITCH, this, false);
 	private KeybindSetting keybindSetting = new KeybindSetting("setting.keybind", "setting.keybind.description",
-			Icon.KEYBOARD, this, InputUtil.fromKeyCode(GLFW.GLFW_KEY_V, 0));
+			Icon.KEYBOARD, this, InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_V, 0, 0)));
 
 	public TaplookMod() {
 		super("mod.taplook.name", "mod.taplook.description", Icon.TOUCH_APP, ModCategory.PLAYER);

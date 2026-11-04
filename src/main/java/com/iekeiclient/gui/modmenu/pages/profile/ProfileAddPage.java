@@ -63,7 +63,7 @@ public class ProfileAddPage extends SimplePage {
 			@Override
 			public void onAction() {
 				if (!nameField.getText().isEmpty()) {
-					Iekei.getInstance().getProfileManager().save(nameField.getText(), client.getGameProfile().getName(),
+					Iekei.getInstance().getProfileManager().save(nameField.getText(), client.getGameProfile().name(),
 							addressField.getText(), currentIcon, ConfigType.MOD);
 					Iekei.getInstance().getProfileManager().readProfiles();
 					parent.setClosable(true);
