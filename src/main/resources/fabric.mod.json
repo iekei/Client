@@ -1,18 +1,18 @@
 {
 	"schemaVersion": 1,
-	"id": "soarclient",
+	"id": "iekeiclient",
 	"version": "${version}",
-	"name": "SoarClient",
+	"name": "iekeiclient",
 	"description": "Modern and powerful client for Minecraft PvP",
 	"authors": [
 		"EldoDebug"
 	],
 	"contact": {
-		"homepage": "https://soarclient.com/"
+		"homepage": "https://iekeiclient.com/"
 	},
 	"environment": "*",
 	"mixins": [
-		"soar.mixins.json"
+		"iekei.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.16.10",

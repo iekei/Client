@@ -21,7 +21,7 @@ base {
 }
 
 loom {
-	accessWidenerPath = file("src/main/resources/soar.accesswidener")
+	accessWidenerPath = file("src/main/resources/iekei.accesswidener")
 }
 
 repositories {
@@ -137,8 +137,8 @@ task proguard(type: proguard.gradle.ProGuardTask) {
 
     keepattributes 'Signature,*Annotation*,Exceptions'
     
-    keep 'class com.soarclient.mixin.mixins** { *; }'
-    keeppackagenames 'com.soarclient.mixin.mixins**'
+    keep 'class com.iekeiclient.mixin.mixins** { *; }'
+    keeppackagenames 'com.iekeiclient.mixin.mixins**'
     
     renamesourcefileattribute 'SourceFile'
     repackageclasses ''
