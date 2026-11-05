@@ -1,6 +1,6 @@
 /*
- * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
- * Copyright (c) Meteor Development.
+ * This file is part of the  Client distribution (https://github.com/Development/-client).
+ * Copyright (c)  Development.
  */
 
 package com.iekeiclient.engine.commands.commands;

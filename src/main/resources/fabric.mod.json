@@ -21,11 +21,25 @@
 		],
 		"modmenu": [
 			"com.iekeiclient.engine.modintegration.ModMenuIntegration"
+		],
+		"iekei": [
+			"com.iekeiclient.addons.trouserstreak.Trouser",
+			"com.iekeiclient.addons.shama.ShamaAddon",
+			"com.iekeiclient.addons.seijaprinter.Addon",
+			"com.iekeiclient.addons.villagerroller.VillagerRollerAddon",
+			"com.iekeiclient.addons.rejects.IekeiRejectsAddon"
 		]
 	},
 	"mixins": [
 		"iekei.mixins.json",
 		"iekeiclient.mixins.json",
+		"iekeiclient-trouser.mixins.json",
+		"iekeiclient-shama.mixins.json",
+		"iekeiclient-shama-optional.mixins.json",
+		"iekeiclient-shama-baritone.mixins.json",
+		"iekeiclient-seijaprinter.mixins.json",
+		"iekeiclient-rejects.mixins.json",
+		"iekeiclient-rejects-iekei.mixins.json",
 		"iekeiclient-baritone.mixins.json",
 		"iekeiclient-indigo.mixins.json",
 		"iekeiclient-lithium.mixins.json",
@@ -36,6 +50,8 @@
 	"depends": {
 		"fabricloader": ">=0.18.4",
 		"fabric-api": "*",
-		"minecraft": "1.21.11"
+		"minecraft": "1.21.11",
+		"malilib": "*",
+		"litematica": "*"
 	}
 }

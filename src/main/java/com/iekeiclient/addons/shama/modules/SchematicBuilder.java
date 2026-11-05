@@ -1,0 +1,928 @@
+package com.iekeiclient.addons.shama.modules;
+
+import com.iekeiclient.engine.events.render.Render3DEvent;
+import com.iekeiclient.engine.events.world.TickEvent;
+import com.iekeiclient.engine.renderer.ShapeMode;
+import com.iekeiclient.engine.settings.*;
+import com.iekeiclient.engine.systems.modules.Module;
+import com.iekeiclient.engine.utils.render.color.Color;
+import com.iekeiclient.engine.utils.render.color.SettingColor;
+import meteordevelopment.orbit.EventHandler;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.item.BlockItem;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Schematic Builder++ — builds a litematica schematic by hand, the way a person would.
+ *
+ * Litematica's own printer, and Baritone's build command, both work by asking the server to place a
+ * block wherever you point. They get the job done and they get you kicked, because the requests
+ * arrive at a machine's pace, from angles a person would never hold, against faces a person could
+ * never have clicked.
+ *
+ * This does the same job through the ordinary placement path instead. Every block goes down against
+ * a face that is genuinely there, aimed at with a rotation that is actually sent and eased into
+ * rather than snapped to, at a pace that wanders and tires. Where the schematic wants a block in
+ * mid-air it puts scaffolding underneath and takes it away afterwards, and where it cannot even do
+ * that it moves on and comes back rather than asking the server to accept a block floating on
+ * nothing.
+ *
+ * The other half of the problem is what happens when a placement does not land. A printer that keeps
+ * retrying the same impossible block is both obvious and useless, so each position gets a small
+ * number of attempts, then goes to the back of the queue, and finally gets left alone and reported.
+ * It never spins on one spot.
+ */
+public class SchematicBuilder extends Module {
+    public enum Walk {
+        /** You move yourself; it builds whatever comes within reach. */
+        Manual,
+        /** Baritone walks you to the next unfinished part, then stops so every block goes down by hand. */
+        Baritone
+    }
+
+    private final SettingGroup sg = settings.getDefaultGroup();
+
+    private final Setting<String> fileName = sg.add(new StringSetting.Builder()
+        .name("schematic")
+        .description("File to build, from the schematics folder in your Minecraft directory. Include the .litematic on the end. Litematica writes there by default, so anything you have saved should already be sitting in it.")
+        .defaultValue("build.litematic").build());
+
+    private final Setting<Boolean> loadNow = sg.add(new BoolSetting.Builder()
+        .name("reload")
+        .description("Read the file again. Turn this on after changing the name above, or after editing the schematic — it switches itself back off once the file is in.")
+        .defaultValue(false).build());
+
+    private final Setting<Boolean> originHere = sg.add(new BoolSetting.Builder()
+        .name("origin-at-me")
+        .description("Put the corner of the schematic where you are standing when it loads. Off uses the coordinates saved inside the file, which is what you want if the schematic was cut from this world in the first place.")
+        .defaultValue(true).build());
+
+    // ---------------------------------------------------------------- pace
+    private final SettingGroup sgPace = settings.createGroup("Pace");
+
+    private final Setting<Integer> baseDelay = sgPace.add(new IntSetting.Builder()
+        .name("delay")
+        .description("Ticks between placements, before any variation. Around 4 is a brisk but believable rate; 2 is faster than most people can click steadily.")
+        .defaultValue(4).min(1).max(40).sliderRange(2, 15).build());
+
+    private final Setting<Integer> jitter = sgPace.add(new IntSetting.Builder()
+        .name("variation")
+        .description("How much that delay wanders, as a percent. Nobody places blocks on a metronome, and a perfectly even interval is one of the easiest things to spot in a packet log.")
+        .defaultValue(40).min(0).max(90).sliderRange(10, 70).build());
+
+    private final Setting<Boolean> breaks = sgPace.add(new BoolSetting.Builder()
+        .name("pauses")
+        .description("Stop occasionally for a moment, the way somebody does when they look at what they are doing. Long unbroken runs of placements at a steady rate are what a printer looks like.")
+        .defaultValue(true).build());
+
+    private final Setting<Integer> breakChance = sgPace.add(new IntSetting.Builder()
+        .name("pause-chance")
+        .description("Roughly how often to stop, as a percent chance per placement.")
+        .defaultValue(3).min(1).max(30).sliderRange(1, 12).visible(breaks::get).build());
+
+    private final Setting<Integer> breakLength = sgPace.add(new IntSetting.Builder()
+        .name("pause-length")
+        .description("How long a pause lasts, in ticks. It varies either side of this.")
+        .defaultValue(20).min(5).max(200).sliderRange(10, 80).visible(breaks::get).build());
+
+    // ---------------------------------------------------------------- aiming
+    private final SettingGroup sgAim = settings.createGroup("Aiming");
+
+    private final Setting<Boolean> sendRotations = sgAim.add(new BoolSetting.Builder()
+        .name("send-rotations")
+        .description("Actually turn towards each block before placing it. This is the single most important thing here: a placement that arrives while you are facing somewhere else is the clearest possible sign of a printer, and most anarchy checks look for exactly that.")
+        .defaultValue(true).build());
+
+    private final Setting<Double> aimNoise = sgAim.add(new DoubleSetting.Builder()
+        .name("aim-noise")
+        .description("How far the aim wanders off centre each time, in degrees. Hitting the exact centre of a block face every single time is not something a hand does.")
+        .defaultValue(2.5).min(0).max(15).sliderRange(0, 8).decimalPlaces(1).visible(sendRotations::get).build());
+
+    private final Setting<Boolean> smoothTurning = sgAim.add(new BoolSetting.Builder()
+        .name("smooth-turning")
+        .description("Turn towards each block over several ticks instead of snapping to it. A head that jumps instantly from one exact angle to the next is the thing rotation checks are built to notice, and easing between them costs nothing but a few ticks.")
+        .defaultValue(true).visible(sendRotations::get).build());
+
+    private final Setting<Double> turnSpeed = sgAim.add(new DoubleSetting.Builder()
+        .name("turn-speed")
+        .description("How far the aim can move in one tick, in degrees. Lower looks more deliberate and builds more slowly; higher gets closer to snapping.")
+        .defaultValue(22).min(3).max(180).sliderRange(8, 60).decimalPlaces(0)
+        .visible(smoothTurning::get).build());
+
+    private final Setting<Boolean> overshoot = sgAim.add(new BoolSetting.Builder()
+        .name("overshoot")
+        .description("Go slightly past the block and settle back, the way a hand does when it moves quickly. Landing exactly on target every time, from any distance, is not something a mouse produces.")
+        .defaultValue(true).visible(smoothTurning::get).build());
+
+    private final Setting<Boolean> packetRotations = sgAim.add(new BoolSetting.Builder()
+        .name("packet-rotations (risky)")
+        .description("Turn only the server's idea of where you are looking and leave your screen still. It does that by sending a look packet of its own on top of the game's normal movement packet, and timer checks on anarchy servers count exactly that, so it is off by default. With it off your view turns for real and the game's own packet carries the aim, one movement packet a tick like normal play.")
+        .defaultValue(false).visible(sendRotations::get).build());
+
+    private final Setting<Boolean> varyFace = sgAim.add(new BoolSetting.Builder()
+        .name("vary-face")
+        .description("When more than one neighbouring face would work, pick between them rather than always taking the same one. A build placed entirely off one face has a signature you can see in the packets.")
+        .defaultValue(true).build());
+
+    private final Setting<Boolean> varySpot = sgAim.add(new BoolSetting.Builder()
+        .name("vary-hit-spot")
+        .description("Aim at a different point within the face each time instead of dead centre. Cheap, and it removes another repeating number from every placement you send.")
+        .defaultValue(true).build());
+
+    private final Setting<Double> reach = sgAim.add(new DoubleSetting.Builder()
+        .name("reach")
+        .description("How far away a block can be and still be placed. Vanilla allows a little under five, and going past that is rejected outright by most servers, so this stays inside it.")
+        .defaultValue(4.2).min(1).max(5).sliderRange(2, 4.5).decimalPlaces(1).build());
+
+    // ---------------------------------------------------------------- support
+    private final SettingGroup sgSupport = settings.createGroup("Support");
+
+    private final Setting<Boolean> scaffold = sgSupport.add(new BoolSetting.Builder()
+        .name("scaffolding")
+        .description("Where the schematic wants a block with nothing to place it against, put a temporary block underneath first. This is the honest way to build into open air — the alternative is asking the server to accept a block floating on nothing, which is what gets printers caught. If there is nothing to scaffold with, it simply builds the rest and comes back.")
+        .defaultValue(true).build());
+
+    private final Setting<Boolean> cleanScaffold = sgSupport.add(new BoolSetting.Builder()
+        .name("remove-scaffolding")
+        .description("Take the temporary blocks back out once the parts they were holding up are finished. Only the ones this module put down are touched, so it can never eat its own work.")
+        .defaultValue(true).visible(scaffold::get).build());
+
+    private final Setting<Boolean> skipUnsupported = sgSupport.add(new BoolSetting.Builder()
+        .name("skip-if-no-support")
+        .description("With scaffolding off, leave anything that has nothing to place against rather than trying anyway. Trying anyway is the easy-place behaviour this module exists to avoid.")
+        .defaultValue(true).visible(() -> !scaffold.get()).build());
+
+    // ---------------------------------------------------------------- mistakes
+    private final SettingGroup sgFail = settings.createGroup("Mistakes");
+
+    private final Setting<Boolean> misclicks = sgFail.add(new BoolSetting.Builder()
+        .name("misclicks")
+        .description("Occasionally fumble one and take an extra moment before trying again. A build that goes down without a single hesitation over thousands of blocks is not something a person produces, and the cost is a handful of wasted ticks.")
+        .defaultValue(true).build());
+
+    private final Setting<Integer> misclickChance = sgFail.add(new IntSetting.Builder()
+        .name("misclick-chance")
+        .description("How often that happens, as a percent.")
+        .defaultValue(2).min(1).max(20).sliderRange(1, 8).visible(misclicks::get).build());
+
+    private final Setting<Boolean> fatigue = sgFail.add(new BoolSetting.Builder()
+        .name("fatigue")
+        .description("Slow down gradually over a long build, then recover after a pause. People do not hold the same rate for an hour, and a constant one across thousands of placements stands out more than any single packet does.")
+        .defaultValue(true).build());
+
+    private final Setting<Integer> attempts = sgFail.add(new IntSetting.Builder()
+        .name("attempts")
+        .description("How many times to try one position before setting it aside. Retrying forever is what makes a stuck printer obvious, and it never fixes anything.")
+        .defaultValue(3).min(1).max(10).sliderRange(1, 6).build());
+
+    private final Setting<Boolean> requeue = sgFail.add(new BoolSetting.Builder()
+        .name("come-back-later")
+        .description("Send a position that failed to the back of the queue instead of giving up on it. Most failures are because something else is not built yet, so by the time it comes round again the problem has usually solved itself.")
+        .defaultValue(true).build());
+
+    private final Setting<Boolean> fixWrong = sgFail.add(new BoolSetting.Builder()
+        .name("fix-wrong-blocks")
+        .description("Break and replace anything already standing where the schematic wants something else. Off builds around whatever is in the way, which is safer on a server where breaking is watched.")
+        .defaultValue(false).build());
+
+    private final Setting<Boolean> report = sgFail.add(new BoolSetting.Builder()
+        .name("report")
+        .description("Say in chat what was placed, what was skipped and why, as it goes.")
+        .defaultValue(true).build());
+
+    // ---------------------------------------------------------------- walking
+    private final SettingGroup sgWalk = settings.createGroup("Walking");
+
+    private final Setting<Walk> walkMode = sgWalk.add(new EnumSetting.Builder<Walk>()
+        .name("movement")
+        .description("How you get around the build. Manual leaves the walking to you and builds whatever comes within reach. Baritone uses Baritone's pathfinding to take you to the next unfinished part — lowest layer first, nearest block first, the way its own build command goes about it — then stops, so every block still goes down through the same eased, humanised placement as manual. Baritone never places or breaks anything in the build itself.")
+        .defaultValue(Walk.Manual).build());
+
+    private final Setting<Integer> walkRange = sgWalk.add(new IntSetting.Builder()
+        .name("stop-distance")
+        .description("How close Baritone brings you to the next block before handing back, in blocks. It has to be inside your reach, and a little short of it looks less like a bot parking at the exact limit.")
+        .defaultValue(3).min(1).max(4).sliderRange(1, 4).visible(() -> walkMode.get() == Walk.Baritone).build());
+
+    private final Setting<Boolean> bridging = sgWalk.add(new BoolSetting.Builder()
+        .name("let-baritone-bridge (risky)")
+        .description("Allow Baritone to pillar and bridge with its throwaway blocks to reach higher layers. Without it, parts of the build Baritone cannot walk to are skipped with a message. With it, Baritone places those blocks at its own pace rather than through the humanised path — exactly what this module exists to avoid — and they can land inside the build, so it is off by default.")
+        .defaultValue(false).visible(() -> walkMode.get() == Walk.Baritone).build());
+
+    // ---------------------------------------------------------------- render
+    private final SettingGroup sgRender = settings.createGroup("Render");
+
+    private final Setting<Boolean> preview = sgRender.add(new BoolSetting.Builder()
+        .name("preview").description("Draw what is still to be built.").defaultValue(true).build());
+    private final Setting<Integer> previewRange = sgRender.add(new IntSetting.Builder()
+        .name("preview-range").description("How far the preview reaches, in blocks.")
+        .defaultValue(48).min(4).max(256).sliderRange(16, 128).visible(preview::get).build());
+    private final Setting<SettingColor> todoColor = sgRender.add(new ColorSetting.Builder()
+        .name("todo-color").description("Colour for blocks still to place.")
+        .defaultValue(new SettingColor(90, 190, 255, 60)).visible(preview::get).build());
+    private final Setting<SettingColor> stuckColor = sgRender.add(new ColorSetting.Builder()
+        .name("stuck-color").description("Colour for the ones it gave up on, so you can see what needs a hand.")
+        .defaultValue(new SettingColor(255, 70, 70, 110)).visible(preview::get).build());
+
+    /** One block the schematic wants, and how many times we have tried to put it there. */
+    private static final class Target {
+        final BlockPos pos;
+        final BlockState state;
+        int tries;
+        /** A scaffold block rather than part of the schematic. */
+        boolean temp;
+        Target(BlockPos pos, BlockState state) { this.pos = pos; this.state = state; }
+    }
+
+    private final List<Target> queue = new ArrayList<>();
+    private final Set<Long> stuck = new HashSet<>();
+    private final Set<Long> scaffoldPlaced = new HashSet<>();
+    private int timer, pausedFor, placed, skipped;
+    /** Where the aim actually is right now, so it can be walked towards the target rather than snapped. */
+    private float curYaw, curPitch;
+    private boolean aimStarted;
+    private int sinceBreak;
+    /** The block we have committed to, and where on it we are aiming. */
+    private Target locked;
+    private Vec3d lockedHit;
+    private Direction lockedFace;
+    private float aimYaw, aimPitch, settleYaw, settlePitch;
+    private boolean settlePending;
+    private int aimedFor;
+    /** Every position the schematic wants filled, built or not. Scaffolding never touches these. */
+    private final Set<Long> targetPositions = new HashSet<>();
+    /** Something being mined out: the wrong block in the way, or finished scaffolding. */
+    private BlockPos breaking;
+    private Direction breakFace;
+    private Target breakFor;
+    private int breakTicks, breakAimed;
+    /** Where Baritone is taking us, if anywhere. */
+    private boolean walking, warnedNoBaritone;
+    private BlockPos walkGoal;
+    private int walkIdle;
+    private String status = "nothing loaded";
+
+    public SchematicBuilder() {
+        super(com.iekeiclient.addons.shama.ShamaAddon.PLAYER, "schematic-builder++",
+            "Builds a litematica schematic through the ordinary placement path — real rotations eased into rather than snapped to, real faces, scaffolding instead of blocks floating on nothing, and a pace that wanders and tires. Can let Baritone do the walking while every block still goes down by hand.");
+    }
+
+    @Override
+    public void onActivate() {
+        queue.clear(); stuck.clear(); scaffoldPlaced.clear();
+        timer = pausedFor = placed = skipped = sinceBreak = 0;
+        aimStarted = false;
+        clearLock();
+        breaking = null; breakFor = null; walking = false; walkGoal = null; warnedNoBaritone = false;
+        status = "nothing loaded";
+        loadNow.set(true);
+    }
+
+    @Override
+    public void onDeactivate() {
+        stopWalking();
+        if (com.iekeiclient.engine.pathing.BaritoneUtils.IS_AVAILABLE) com.iekeiclient.addons.shama.util.BaritoneBridge.restore();
+        queue.clear(); stuck.clear(); scaffoldPlaced.clear(); breaking = null; breakFor = null;
+    }
+
+    // ================================================================ loading
+
+    /**
+     * Read a .litematic and turn it into a list of positions to fill.
+     *
+     * The format is gzipped NBT: a Regions compound, each region carrying its size, a palette of
+     * block states, and a long array holding one packed index per position. The index width is
+     * whatever it takes to count the palette, minimum two bits.
+     *
+     * NbtIo's read method has been renamed more than once, so it is found by signature rather than
+     * called by name — a rename disables loading instead of stopping the addon compiling.
+     */
+    private void load() {
+        queue.clear(); stuck.clear(); targetPositions.clear(); clearLock(); placed = 0; skipped = 0;
+        try {
+            // the client knows its own directory; FabricLoader would do too, but this needs no extra API
+            java.nio.file.Path dir = mc.runDirectory.toPath().resolve("schematics");
+            java.nio.file.Path file = dir.resolve(fileName.get());
+            if (!java.nio.file.Files.exists(file)) {
+                status = "no file called " + fileName.get() + " in " + dir;
+                if (report.get()) com.iekeiclient.addons.shama.util.Chat.warning("[Builder] %s", status);
+                return;
+            }
+
+            NbtCompound root = readNbt(file);
+            if (root == null) { status = "could not read that file"; return; }
+
+            NbtCompound regions = root.getCompound("Regions").orElse(null);
+            if (regions == null) { status = "no regions in that schematic"; return; }
+
+            BlockPos origin = originHere.get() && mc.player != null
+                ? mc.player.getBlockPos() : BlockPos.ORIGIN;
+
+            for (String name : regions.getKeys()) {
+                NbtCompound r = regions.getCompound(name).orElse(null);
+                if (r == null) continue;
+                readRegion(r, origin);
+            }
+
+            // bottom up, then nearest first: you cannot stand on what you have not built yet
+            if (mc.player != null) {
+                BlockPos me = mc.player.getBlockPos();
+                queue.sort((a, b) -> {
+                    if (a.pos.getY() != b.pos.getY()) return Integer.compare(a.pos.getY(), b.pos.getY());
+                    return Double.compare(me.getSquaredDistance(a.pos), me.getSquaredDistance(b.pos));
+                });
+            }
+            status = queue.size() + " blocks to place";
+            if (report.get()) com.iekeiclient.addons.shama.util.Chat.info("[Builder] loaded %s — %d blocks", fileName.get(), queue.size());
+        } catch (Throwable t) {
+            status = "failed to load: " + t.getClass().getSimpleName();
+            if (report.get()) com.iekeiclient.addons.shama.util.Chat.warning("[Builder] %s", status);
+        }
+    }
+
+    private NbtCompound readNbt(java.nio.file.Path file) {
+        for (var m : net.minecraft.nbt.NbtIo.class.getMethods()) {
+            if (!m.getName().toLowerCase().contains("readcompressed")) continue;
+            Class<?>[] p = m.getParameterTypes();
+            try {
+                if (p.length == 2 && p[0].isAssignableFrom(java.nio.file.Path.class))
+                    return (NbtCompound) m.invoke(null, file, newSizeTracker());
+                if (p.length == 1 && p[0].isAssignableFrom(java.nio.file.Path.class))
+                    return (NbtCompound) m.invoke(null, file);
+                if (p.length == 2 && p[0].isAssignableFrom(java.io.InputStream.class))
+                    try (var in = java.nio.file.Files.newInputStream(file)) {
+                        return (NbtCompound) m.invoke(null, in, newSizeTracker());
+                    }
+            } catch (Throwable ignored) {}
+        }
+        return null;
+    }
+
+    private Object newSizeTracker() {
+        try {
+            for (var m : net.minecraft.nbt.NbtSizeTracker.class.getMethods()) {
+                if (m.getParameterCount() == 1 && m.getReturnType() == net.minecraft.nbt.NbtSizeTracker.class)
+                    return m.invoke(null, 0x20000000L);
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private void readRegion(NbtCompound r, BlockPos origin) {
+        NbtCompound posC = r.getCompound("Position").orElse(null);
+        NbtCompound sizeC = r.getCompound("Size").orElse(null);
+        if (posC == null || sizeC == null) return;
+
+        int px = posC.getInt("x").orElse(0), py = posC.getInt("y").orElse(0), pz = posC.getInt("z").orElse(0);
+        int sx = sizeC.getInt("x").orElse(0), sy = sizeC.getInt("y").orElse(0), sz = sizeC.getInt("z").orElse(0);
+
+        // a region can be given with a negative size, meaning it extends the other way
+        int ox = Math.min(px, px + sx + (sx < 0 ? 1 : -1));
+        int oy = Math.min(py, py + sy + (sy < 0 ? 1 : -1));
+        int oz = Math.min(pz, pz + sz + (sz < 0 ? 1 : -1));
+        int w = Math.abs(sx), h = Math.abs(sy), d = Math.abs(sz);
+        if (w == 0 || h == 0 || d == 0) return;
+
+        var paletteList = r.getList("BlockStatePalette").orElse(null);
+        long[] data = r.getLongArray("BlockStates").orElse(null);
+        if (paletteList == null || data == null || data.length == 0) return;
+
+        List<BlockState> palette = new ArrayList<>();
+        for (int i = 0; i < paletteList.size(); i++) {
+            NbtCompound e = paletteList.getCompound(i).orElse(null);
+            palette.add(e == null ? Blocks.AIR.getDefaultState() : stateFrom(e));
+        }
+        if (palette.isEmpty()) return;
+
+        int bits = Math.max(2, 32 - Integer.numberOfLeadingZeros(palette.size() - 1));
+        long mask = (1L << bits) - 1L;
+
+        for (int y = 0; y < h; y++) for (int z = 0; z < d; z++) for (int x = 0; x < w; x++) {
+            long index = (long) (y * d + z) * w + x;
+            long bitPos = index * bits;
+            int slot = (int) (bitPos >> 6);
+            int offset = (int) (bitPos & 63);
+            if (slot >= data.length) continue;
+
+            long value = data[slot] >>> offset;
+            if (offset + bits > 64 && slot + 1 < data.length)
+                value |= data[slot + 1] << (64 - offset);
+            int id = (int) (value & mask);
+            if (id < 0 || id >= palette.size()) continue;
+
+            BlockState st = palette.get(id);
+            if (st.isAir()) continue;
+            BlockPos tp = new BlockPos(origin.getX() + ox + x, origin.getY() + oy + y, origin.getZ() + oz + z);
+            queue.add(new Target(tp, st));
+            targetPositions.add(tp.asLong());
+        }
+    }
+
+    private BlockState stateFrom(NbtCompound e) {
+        try {
+            String name = e.getString("Name").orElse("minecraft:air");
+            Block b = Registries.BLOCK.get(net.minecraft.util.Identifier.of(name));
+            return b == null ? Blocks.AIR.getDefaultState() : b.getDefaultState();
+        } catch (Throwable t) { return Blocks.AIR.getDefaultState(); }
+    }
+
+    // ================================================================ building
+
+    @EventHandler
+    private void onTick(TickEvent.Post event) {
+        if (loadNow.get()) { loadNow.set(false); load(); }
+        if (mc.player == null || mc.world == null) return;
+        // Finished only when there is nothing to place, nothing to tidy up and nothing half-mined.
+        // Returning on an empty queue alone would skip taking the scaffolding back out.
+        if (queue.isEmpty() && scaffoldPlaced.isEmpty() && breaking == null) {
+            stopWalking();
+            if (com.iekeiclient.engine.pathing.BaritoneUtils.IS_AVAILABLE) com.iekeiclient.addons.shama.util.BaritoneBridge.restore();
+            return;
+        }
+
+        if (pausedFor > 0) { pausedFor--; return; }
+
+        // Mining something out comes first and carries on every tick until it is gone, the way a
+        // held button does. Nothing else happens while a block is half broken.
+        if (breaking != null) { mineStep(); return; }
+
+        // Turn towards the block we have committed to, one step every tick, before anything else.
+        // A turn still in progress is not a failed placement, so it is never counted against it.
+        if (locked != null) {
+            if (!queue.contains(locked)) clearLock();
+            else if (sendRotations.get()) {
+                if (!turnStep()) { aimedFor = 0; return; }
+                aimedFor++;
+            }
+        }
+
+        // the longer this has run without a rest, the slower it goes
+        int pace = baseDelay.get();
+        if (fatigue.get()) pace += Math.min(4, sinceBreak / 250);
+        if (++timer < com.iekeiclient.addons.shama.util.Humanize.jitter(pace, jitter.get())) return;
+        timer = 0;
+        sinceBreak++;
+
+        // stop for a moment now and then, the way somebody checking their work does
+        if (breaks.get() && com.iekeiclient.addons.shama.util.Humanize.chance(breakChance.get())) {
+            pausedFor = com.iekeiclient.addons.shama.util.Humanize.jitter(breakLength.get(), 50);
+            sinceBreak = 0;                        // a rest clears the accumulated slowdown
+            return;
+        }
+
+        // fumble one now and then, and take a moment over it
+        if (misclicks.get() && com.iekeiclient.addons.shama.util.Humanize.shouldMiss(misclickChance.get())) {
+            pausedFor = com.iekeiclient.addons.shama.util.Humanize.jitter(6, 60);
+            return;
+        }
+
+        Target t = locked != null ? locked : nextReachable();
+        if (t == null) {
+            boolean cleaning = queue.isEmpty() && cleanScaffold.get() && scaffold.get() && !scaffoldPlaced.isEmpty();
+            if (cleaning && removeScaffolding()) { stopWalking(); return; }
+            if (queue.isEmpty() && !cleaning) { scaffoldPlaced.clear(); stopWalking(); return; }
+            walkToWork(cleaning);                     // nothing in reach: go to where the work is
+            return;
+        }
+        stopWalking();                                // something is in reach: stand still and do it by hand
+
+        BlockState here = mc.world.getBlockState(t.pos);
+        boolean right = t.temp ? !here.isAir() : here.getBlock() == t.state.getBlock();
+        if (right) { queue.remove(t); clearLock(); return; }   // already right
+
+        if (!here.isAir()) {
+            clearLock();
+            if (!fixWrong.get()) { queue.remove(t); skipped++; return; }
+            startBreaking(t.pos, t);                  // mined out over the next ticks, then placed
+            return;
+        }
+
+        boolean held = t.temp ? selectAnyBuildingBlock() : selectBlock(t.state.getBlock());
+        if (!held) { clearLock(); if (t.temp) queue.remove(t); else retire(t, "not carrying it"); return; }
+
+        Direction face = (t == locked && lockedFace != null) ? lockedFace : supportFace(t.pos);
+        if (face == null) {
+            clearLock();
+            if (t.temp) { queue.remove(t); return; }        // nothing to prop the scaffold on either
+            if (scaffold.get()) { placeScaffold(t); return; }
+            // Scaffolding is off. Either leave it, or send it round again in case its neighbours get
+            // built first — but never place it against nothing.
+            if (skipUnsupported.get()) retire(t, "nothing to place against");
+            else if (requeue.get() && ++t.tries < attempts.get()) { queue.remove(t); queue.add(t); }
+            else retire(t, "nothing to place against");
+            return;
+        }
+
+        Vec3d hit = (t == locked && lockedHit != null) ? lockedHit : pickHit(t.pos.offset(face.getOpposite()), face);
+
+        if (sendRotations.get()) {
+            // A new block: commit to it and start turning. The placement waits until the server has
+            // already seen the finished turn, so the click never arrives facing somewhere else.
+            if (t != locked) { startAim(t, face, hit); return; }
+            if (aimedFor < 2) return;
+        }
+
+        boolean ok = doPlace(t.pos, face, hit);
+        clearLock();
+        if (ok) {
+            queue.remove(t);
+            if (t.temp) scaffoldPlaced.add(t.pos.asLong()); else placed++;
+        }
+        else if (++t.tries >= attempts.get()) { if (t.temp) queue.remove(t); else retire(t, "would not go down"); }
+        else if (requeue.get()) { queue.remove(t); queue.add(t); }
+    }
+
+    /**
+     * Take out the temporary blocks once the parts they were holding up are done.
+     *
+     * Only the ones this module put down are touched, and only where the schematic did not want a
+     * block anyway, so it can never eat its own work.
+     */
+    /** Start mining out the nearest finished scaffold block in reach. True if one was started. */
+    private boolean removeScaffolding() {
+        if (scaffoldPlaced.isEmpty() || mc.player == null) return false;
+        double r2 = reach.get() * reach.get();
+        Vec3d eye = mc.player.getEyePos();
+        for (long k : new java.util.ArrayList<>(scaffoldPlaced)) {
+            BlockPos p = BlockPos.fromLong(k);
+            if (mc.world.getBlockState(p).isAir()) { scaffoldPlaced.remove(k); continue; }
+            if (targetPositions.contains(k)) { scaffoldPlaced.remove(k); continue; }   // part of the build
+            if (eye.squaredDistanceTo(Vec3d.ofCenter(p)) > r2) continue;
+            scaffoldPlaced.remove(k);
+            startBreaking(p, null);
+            return true;
+        }
+        return false;
+    }
+
+    /** Point the aim at a spot, with the same noise, overshoot and easing as placing. */
+    private void aimAtPoint(Vec3d p) {
+        Vec3d eye = mc.player.getEyePos();
+        double dx = p.x - eye.x, dy = p.y - eye.y, dz = p.z - eye.z;
+        double flat = Math.sqrt(dx * dx + dz * dz);
+        float n = aimNoise.get().floatValue();
+        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f + com.iekeiclient.addons.shama.util.Humanize.rotationNoise(n);
+        float pitch = clampPitch((float) -Math.toDegrees(Math.atan2(dy, flat)) + com.iekeiclient.addons.shama.util.Humanize.rotationNoise(n));
+        if (!aimStarted) { curYaw = mc.player.getYaw(); curPitch = mc.player.getPitch(); aimStarted = true; }
+        settleYaw = yaw; settlePitch = pitch; settlePending = false;
+        aimYaw = yaw; aimPitch = pitch;
+        if (smoothTurning.get() && overshoot.get() && Math.abs(wrap(yaw - curYaw)) > 25f) {
+            aimYaw = yaw + (wrap(yaw - curYaw) > 0 ? 3f : -3f);
+            settlePending = true;
+        }
+        if (!smoothTurning.get()) { curYaw = yaw; curPitch = pitch; applyRotation(); }
+    }
+
+    /** Begin mining a block out, aiming at the face that points back towards you. */
+    private void startBreaking(BlockPos pos, Target forTarget) {
+        clearLock();
+        breaking = pos; breakFor = forTarget; breakTicks = 0; breakAimed = 0;
+        Vec3d d = mc.player.getEyePos().subtract(Vec3d.ofCenter(pos));
+        double ax = Math.abs(d.x), ay = Math.abs(d.y), az = Math.abs(d.z);
+        breakFace = (ay >= ax && ay >= az) ? (d.y > 0 ? Direction.UP : Direction.DOWN)
+                  : (ax >= az) ? (d.x > 0 ? Direction.EAST : Direction.WEST)
+                  : (d.z > 0 ? Direction.SOUTH : Direction.NORTH);
+        if (sendRotations.get()) aimAtPoint(Vec3d.ofCenter(pos));
+    }
+
+    /**
+     * Keep mining one block, a tick at a time, until it is gone.
+     *
+     * This goes through the game's own held-break path, which is what actually tells the server a
+     * block is being mined. Removing a block client-side alone looks like it worked and leaves it
+     * standing on the server. A block that will not come out in ten seconds is given up on.
+     */
+    private void mineStep() {
+        if (mc.world.getBlockState(breaking).isAir()) { breaking = null; breakFor = null; return; }
+        boolean outOfReach = mc.player.getEyePos().squaredDistanceTo(Vec3d.ofCenter(breaking)) > reach.get() * reach.get();
+        if (++breakTicks > 200 || outOfReach) {
+            if (breakFor != null) retire(breakFor, "could not break what was in the way");
+            breaking = null; breakFor = null;
+            return;
+        }
+        if (sendRotations.get()) {
+            if (!turnStep()) { breakAimed = 0; return; }         // still turning towards it
+            if (++breakAimed < 2) return;                        // let the server see the aim first
+            if (packetRotations.get() && breakAimed == 2)
+                mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(
+                    curYaw, clampPitch(curPitch), mc.player.isOnGround(), false));
+        }
+        mc.interactionManager.updateBlockBreakingProgress(breaking, breakFace);
+        mc.player.swingHand(Hand.MAIN_HAND);
+    }
+
+    // ---------------------------------------------------------------- baritone walking
+
+    /**
+     * Nothing is in reach: ask Baritone to take us to where the work is.
+     *
+     * Only walking is handed over. Baritone is told not to break anything and, unless bridging is
+     * allowed, not to place anything, so every block in the build still goes down through the
+     * humanised placement above. If Baritone cannot get somewhere, that block is sent round again and
+     * eventually set aside, the same as any other failure — it never keeps trying one spot.
+     */
+    private void walkToWork(boolean cleaning) {
+        if (walkMode.get() != Walk.Baritone) return;
+        if (!com.iekeiclient.engine.pathing.BaritoneUtils.IS_AVAILABLE) {
+            if (!warnedNoBaritone && report.get())
+                com.iekeiclient.addons.shama.util.Chat.warning("[Builder] Baritone is not installed, so you will have to walk to the next part yourself");
+            warnedNoBaritone = true;
+            return;
+        }
+        BlockPos goal = cleaning ? nearestScaffold() : nextWork();
+        if (goal == null) return;
+
+        if (walking && goal.equals(walkGoal)) {
+            if (com.iekeiclient.addons.shama.util.BaritoneBridge.isPathing()) { walkIdle = 0; return; }
+            if (++walkIdle < 40) return;
+            // Baritone has stopped and it is still out of reach: it could not get there
+            walkIdle = 0;
+            Target stuckAt = targetAt(goal);
+            if (stuckAt != null) {
+                if (++stuckAt.tries >= attempts.get()) retire(stuckAt, "Baritone could not get there");
+                else { queue.remove(stuckAt); queue.add(stuckAt); }
+            } else scaffoldPlaced.remove(goal.asLong());
+            walking = false; walkGoal = null;
+            return;
+        }
+        com.iekeiclient.addons.shama.util.BaritoneBridge.handsOff(bridging.get());
+        com.iekeiclient.addons.shama.util.BaritoneBridge.walkNear(goal, walkRange.get());
+        walking = true; walkGoal = goal; walkIdle = 0;
+    }
+
+    private void stopWalking() {
+        if (!walking) return;
+        walking = false; walkGoal = null;
+        if (com.iekeiclient.engine.pathing.BaritoneUtils.IS_AVAILABLE) com.iekeiclient.addons.shama.util.BaritoneBridge.stop();
+    }
+
+    /** The lowest unfinished layer, and the nearest block in it: build from the ground up. */
+    private BlockPos nextWork() {
+        int minY = Integer.MAX_VALUE;
+        for (Target q : queue) minY = Math.min(minY, q.pos.getY());
+        Vec3d eye = mc.player.getEyePos();
+        Target best = null; double bd = Double.MAX_VALUE;
+        for (Target q : queue) {
+            if (q.pos.getY() != minY) continue;
+            double d = eye.squaredDistanceTo(Vec3d.ofCenter(q.pos));
+            if (d < bd) { bd = d; best = q; }
+        }
+        return best == null ? null : best.pos;
+    }
+
+    private BlockPos nearestScaffold() {
+        Vec3d eye = mc.player.getEyePos();
+        BlockPos best = null; double bd = Double.MAX_VALUE;
+        for (long k : scaffoldPlaced) {
+            BlockPos p = BlockPos.fromLong(k);
+            double d = eye.squaredDistanceTo(Vec3d.ofCenter(p));
+            if (d < bd) { bd = d; best = p; }
+        }
+        return best;
+    }
+
+    private Target targetAt(BlockPos pos) {
+        for (Target q : queue) if (q.pos.equals(pos)) return q;
+        return null;
+    }
+
+    /** The first thing in the queue that is close enough to actually reach. */
+    private Target nextReachable() {
+        double r2 = reach.get() * reach.get();
+        Vec3d eye = mc.player.getEyePos();
+        BlockPos feet = mc.player.getBlockPos();
+        for (Target t : queue) {
+            if (t.pos.equals(feet) || t.pos.equals(feet.up())) continue;   // you are standing in it
+            if (eye.squaredDistanceTo(Vec3d.ofCenter(t.pos)) <= r2) return t;
+        }
+        return null;
+    }
+
+    /**
+     * A face of a neighbouring block that is genuinely there to click on.
+     *
+     * This is the whole difference between this and an easy-place printer. If nothing is next to the
+     * position, there is nothing to click, and the honest answer is to build something there first
+     * rather than to ask the server to accept a placement against thin air.
+     */
+    private Direction supportFace(BlockPos pos) {
+        List<Direction> options = new ArrayList<>();
+        for (Direction d : Direction.values()) {
+            BlockPos n = pos.offset(d);
+            BlockState s = mc.world.getBlockState(n);
+            if (s.isAir() || !s.getFluidState().isEmpty()) continue;
+            // and it has to be a face we could actually see from where we stand
+            if (mc.player.getEyePos().squaredDistanceTo(Vec3d.ofCenter(n)) > reach.get() * reach.get()) continue;
+            options.add(d.getOpposite());
+        }
+        if (options.isEmpty()) return null;
+        if (!varyFace.get()) return options.get(0);
+        return options.get((int) (Math.random() * options.size()));
+    }
+
+    /** Put a temporary block under something that has nothing to stand on. */
+    private void placeScaffold(Target t) {
+        BlockPos under = t.pos.down();
+        if (!mc.world.getBlockState(under).isAir()) return;
+
+        // The schematic wants its own block there. Scaffolding it would put the wrong block in the
+        // build and break it out again later, so wait for that block instead.
+        if (targetPositions.contains(under.asLong())) {
+            if (requeue.get() && ++t.tries < attempts.get()) { queue.remove(t); queue.add(t); }
+            else retire(t, "waiting on the block below it");
+            return;
+        }
+
+        Direction face = supportFace(under);
+        // Nothing to scaffold from, or nothing to scaffold with: neither is a reason to give up on
+        // the block. Put it to the back of the queue and carry on with the rest of the build, since
+        // by the time it comes round again the neighbours it needs are usually standing.
+        if (face == null || !selectAnyBuildingBlock()) {
+            if (requeue.get() && ++t.tries < attempts.get()) { queue.remove(t); queue.add(t); }
+            else retire(t, "nothing to build it against yet");
+            return;
+        }
+        // Its scaffold is already queued: let it go first, and do not spin on this block meanwhile.
+        for (Target q : queue) {
+            if (q.temp && q.pos.equals(under)) { queue.remove(t); queue.add(t); return; }
+        }
+        // Each scaffold counts as an attempt at the block above, so a spot that can never be
+        // scaffolded is given up on rather than tried forever.
+        if (++t.tries >= attempts.get()) { retire(t, "could not scaffold under it"); return; }
+
+        // Queue the scaffold block at the front so it goes through the same turn-then-place path as
+        // everything else, instead of being clicked while facing somewhere else.
+        Target sc = new Target(under, Blocks.AIR.getDefaultState());
+        sc.temp = true;
+        queue.add(0, sc);
+        queue.remove(t); queue.add(t);
+    }
+
+    private void clearLock() {
+        locked = null; lockedHit = null; lockedFace = null; settlePending = false; aimedFor = 0;
+    }
+
+    /** A point on the face to aim at, moved around within it so no two placements share numbers. */
+    private Vec3d pickHit(BlockPos against, Direction face) {
+        Vec3d centre = Vec3d.ofCenter(against);
+        double ox = 0, oy = 0, oz = 0;
+        if (varySpot.get()) {
+            ox = (Math.random() - 0.5) * 0.6;
+            oy = (Math.random() - 0.5) * 0.6;
+            oz = (Math.random() - 0.5) * 0.6;
+        }
+        return centre.add(
+            face.getOffsetX() * 0.5 + (face.getOffsetX() == 0 ? ox : 0),
+            face.getOffsetY() * 0.5 + (face.getOffsetY() == 0 ? oy : 0),
+            face.getOffsetZ() * 0.5 + (face.getOffsetZ() == 0 ? oz : 0));
+    }
+
+    /** Commit to a block: work out where to look, nudged off exact, and set the turn going. */
+    private void startAim(Target t, Direction face, Vec3d hit) {
+        Vec3d eye = mc.player.getEyePos();
+        double dx = hit.x - eye.x, dy = hit.y - eye.y, dz = hit.z - eye.z;
+        double flat = Math.sqrt(dx * dx + dz * dz);
+        float n = aimNoise.get().floatValue();
+        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f + com.iekeiclient.addons.shama.util.Humanize.rotationNoise(n);
+        float pitch = clampPitch((float) -Math.toDegrees(Math.atan2(dy, flat)) + com.iekeiclient.addons.shama.util.Humanize.rotationNoise(n));
+
+        if (!aimStarted) { curYaw = mc.player.getYaw(); curPitch = mc.player.getPitch(); aimStarted = true; }
+        locked = t; lockedFace = face; lockedHit = hit; aimedFor = 0;
+        settleYaw = yaw; settlePitch = pitch; settlePending = false;
+        aimYaw = yaw; aimPitch = pitch;
+
+        // a quick, long turn goes a little past and settles back, the way a hand does
+        if (smoothTurning.get() && overshoot.get() && Math.abs(wrap(yaw - curYaw)) > 25f) {
+            aimYaw = yaw + (wrap(yaw - curYaw) > 0 ? 3f : -3f);
+            settlePending = true;
+        }
+        if (!smoothTurning.get()) { curYaw = yaw; curPitch = pitch; applyRotation(); }
+    }
+
+    /** Move the aim one step towards where it is going, every tick. True once it has arrived. */
+    private boolean turnStep() {
+        float step = smoothTurning.get() ? turnSpeed.get().floatValue() : 360f;
+        float dYaw = wrap(aimYaw - curYaw), dPitch = aimPitch - curPitch;
+        curYaw += Math.max(-step, Math.min(step, dYaw));
+        curPitch = clampPitch(curPitch + Math.max(-step, Math.min(step, dPitch)));
+        applyRotation();
+        boolean there = Math.abs(wrap(aimYaw - curYaw)) <= 1.5f && Math.abs(aimPitch - curPitch) <= 1.5f;
+        if (there && settlePending) {           // reached the overshoot; now come back onto the block
+            aimYaw = settleYaw; aimPitch = settlePitch; settlePending = false;
+            return false;
+        }
+        return there;
+    }
+
+    /**
+     * Put the aim where the server will see it. By default this turns your actual view, so the game's
+     * own movement packet carries the rotation and the server gets one movement packet a tick, the
+     * same as normal play. The risky packet option sends the look with the placement instead.
+     */
+    private void applyRotation() {
+        if (packetRotations.get()) return;
+        mc.player.setYaw(curYaw);
+        mc.player.setPitch(curPitch);
+    }
+
+    private boolean doPlace(BlockPos pos, Direction face, Vec3d hit) {
+        if (sendRotations.get() && packetRotations.get())
+            mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(
+                curYaw, clampPitch(curPitch), mc.player.isOnGround(), false));
+        BlockPos against = pos.offset(face.getOpposite());
+        BlockHitResult res = new BlockHitResult(hit, face, against, false);
+        var before = mc.world.getBlockState(pos).getBlock();
+        mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, res);
+        mc.player.swingHand(Hand.MAIN_HAND);
+        return mc.world.getBlockState(pos).getBlock() != before;
+    }
+
+    /** Shortest way round the circle, so turning from 179 to -179 is two degrees, not 358. */
+    private static float wrap(float degrees) {
+        while (degrees > 180f) degrees -= 360f;
+        while (degrees < -180f) degrees += 360f;
+        return degrees;
+    }
+
+    private static float clampPitch(float p) { return Math.max(-90f, Math.min(90f, p)); }
+
+    private boolean selectBlock(Block want) {
+        for (int i = 0; i < 9; i++) {
+            ItemStack s = mc.player.getInventory().getStack(i);
+            if (s.getItem() instanceof BlockItem bi && bi.getBlock() == want) {
+                mc.player.getInventory().setSelectedSlot(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean selectAnyBuildingBlock() {
+        for (int i = 0; i < 9; i++) {
+            ItemStack s = mc.player.getInventory().getStack(i);
+            if (s.getItem() instanceof BlockItem && s.getCount() > 1) {
+                mc.player.getInventory().setSelectedSlot(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Give up on a position, once, and say why. It never comes back round again. */
+    private void retire(Target t, String why) {
+        queue.remove(t);
+        stuck.add(t.pos.asLong());
+        skipped++;
+        if (report.get())
+            com.iekeiclient.addons.shama.util.Chat.warning("[Builder] left %d, %d, %d — %s",
+                t.pos.getX(), t.pos.getY(), t.pos.getZ(), why);
+    }
+
+    @EventHandler
+    private void onRender(Render3DEvent event) {
+        if (!preview.get() || mc.player == null) return;
+        double r2 = (double) previewRange.get() * previewRange.get();
+        Vec3d eye = mc.player.getEyePos();
+
+        SettingColor tc = todoColor.get();
+        Color fill = new Color(tc.r, tc.g, tc.b, tc.a);
+        Color line = new Color(tc.r, tc.g, tc.b, Math.min(255, tc.a + 120));
+        int drawn = 0;
+        for (Target t : queue) {
+            if (drawn++ > 3000) break;
+            if (eye.squaredDistanceTo(Vec3d.ofCenter(t.pos)) > r2) continue;
+            event.renderer.box(t.pos.getX(), t.pos.getY(), t.pos.getZ(),
+                t.pos.getX() + 1, t.pos.getY() + 1, t.pos.getZ() + 1, fill, line, ShapeMode.Both, 0);
+        }
+
+        SettingColor sc = stuckColor.get();
+        Color sf = new Color(sc.r, sc.g, sc.b, sc.a);
+        Color sl = new Color(sc.r, sc.g, sc.b, Math.min(255, sc.a + 120));
+        for (long k : stuck) {
+            BlockPos p = BlockPos.fromLong(k);
+            if (eye.squaredDistanceTo(Vec3d.ofCenter(p)) > r2) continue;
+            event.renderer.box(p.getX(), p.getY(), p.getZ(),
+                p.getX() + 1, p.getY() + 1, p.getZ() + 1, sf, sl, ShapeMode.Both, 0);
+        }
+    }
+
+    @Override
+    public String getInfoString() {
+        if (queue.isEmpty()) return status;
+        return queue.size() + " left, " + placed + " done" + (skipped > 0 ? ", " + skipped + " skipped" : "");
+    }
+}

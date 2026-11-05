@@ -1,0 +1,52 @@
+package com.iekeiclient.addons.trouserstreak.commands;
+
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.iekeiclient.engine.commands.Command;
+import com.iekeiclient.engine.utils.player.ChatUtils;
+import net.minecraft.command.CommandSource;
+import net.minecraft.text.Text;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import static com.mojang.brigadier.Command.SINGLE_SUCCESS;
+import static com.iekeiclient.engine.IekeiClient.mc;
+
+public class ViewNbtCommand extends Command {
+    public ViewNbtCommand() {
+        super("viewnbt", "Tells you the nbt data of the item in your main hand.");
+    }
+    @Override
+    public void build(LiteralArgumentBuilder<CommandSource> builder) {
+        builder.executes(ctx -> {
+            if (!mc.player.getMainHandStack().isEmpty()){
+                if (mc.player.getMainHandStack().getComponents() == null){
+                    error("No NBT data for item.");
+                    return SINGLE_SUCCESS;
+                }
+                ChatUtils.sendMsg(Text.of(mc.player.getMainHandStack().getComponents().toString()));
+            }
+            else error("No item in main hand.");
+            return SINGLE_SUCCESS;
+        });
+        builder.then(literal("save").executes(ctx -> {
+            if (!mc.player.getMainHandStack().isEmpty()){
+                if (mc.player.getMainHandStack().getComponents() == null){
+                    error("No NBT data for item.");
+                    return SINGLE_SUCCESS;
+                }
+                ChatUtils.sendMsg(Text.of(mc.player.getMainHandStack().getComponents().toString()));
+                try {
+                    new File("TrouserStreak/SavedNBT/").mkdirs();
+                    try (FileWriter writer = new FileWriter("TrouserStreak/SavedNBT/ViewedNBTData.txt", true)) {
+                        writer.write(mc.player.getMainHandStack().getComponents().toString());
+                        writer.write("\r\n");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else error("No item in main hand.");
+            return SINGLE_SUCCESS;
+        }));
+    }
+}

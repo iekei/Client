@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "com.iekeiclient.addons.seijaprinter.mixin",
+  "compatibilityLevel": "JAVA_16",
+  "client": [
+    "ClientWorldAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "ChunkRendererSchematicVboMixin",
+    "SchematicVerifierMixin",
+    "WTextBoxAccessor"
+  ]
+}

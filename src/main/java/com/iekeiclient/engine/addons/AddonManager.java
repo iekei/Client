@@ -6,6 +6,7 @@
 package com.iekeiclient.engine.addons;
 
 import com.iekeiclient.engine.IekeiClient;
+import com.iekeiclient.addons.AddonCategories;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import net.fabricmc.loader.api.metadata.ModMetadata;
@@ -23,6 +24,11 @@ public class AddonManager {
             IekeiClient.ADDON = new IekeiAddon() {
                 @Override
                 public void onInitialize() {}
+
+                @Override
+                public void onRegisterCategories() {
+                    AddonCategories.registerAll();
+                }
 
                 @Override
                 public String getPackage() {

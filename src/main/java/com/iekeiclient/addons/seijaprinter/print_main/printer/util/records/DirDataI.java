@@ -1,0 +1,18 @@
+/*
+ * Copyright 2025 Nippaku_Zanmu
+ * SPDX-License-Identifier: gplv3
+ */
+
+package com.iekeiclient.addons.seijaprinter.print_main.printer.util.records;
+
+import com.iekeiclient.addons.seijaprinter.print_main.modules.Printer;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+
+import java.util.List;
+
+public record DirDataI(BlockPos placePos, List<Direction> dirs) {
+    private static Printer pri = Printer.getINSTANCE();
+
+
+}
