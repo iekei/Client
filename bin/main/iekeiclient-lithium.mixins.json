@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "package": "com.iekeiclient.engine.mixin.lithium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.iekeiclient.engine.MixinPlugin",
+  "client": [
+    "ChunkAwareBlockCollisionSweeperMixin",
+    "LithiumEntityCollisionsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

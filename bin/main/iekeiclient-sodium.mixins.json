@@ -1,0 +1,17 @@
+{
+  "required": false,
+  "package": "com.iekeiclient.engine.mixin.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.iekeiclient.engine.MixinPlugin",
+  "client": [
+    "MeshVertexConsumerMixin",
+    "SodiumBlockRendererMixin",
+    "SodiumFluidRendererImplDefaultRenderContextMixin",
+    "SodiumFluidRendererImplMixin",
+    "SodiumLightDataAccessMixin",
+    "SodiumWorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

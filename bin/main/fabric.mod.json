@@ -1,0 +1,57 @@
+{
+	"schemaVersion": 1,
+	"id": "iekeiclient",
+	"version": "${version}",
+	"name": "Iekei Client",
+	"description": "Modern and powerful client for Minecraft PvP",
+	"license": "GPL-3.0",
+	"authors": [
+		"EldoDebug"
+	],
+	"contact": {
+		"homepage": "https://iekeiclient.com/"
+	},
+	"custom": {
+		"iekeiclient:build_number": "local"
+	},
+	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"com.iekeiclient.engine.IekeiClient"
+		],
+		"modmenu": [
+			"com.iekeiclient.engine.modintegration.ModMenuIntegration"
+		],
+		"iekei": [
+			"com.iekeiclient.addons.trouserstreak.Trouser",
+			"com.iekeiclient.addons.shama.ShamaAddon",
+			"com.iekeiclient.addons.seijaprinter.Addon",
+			"com.iekeiclient.addons.villagerroller.VillagerRollerAddon",
+			"com.iekeiclient.addons.rejects.IekeiRejectsAddon"
+		]
+	},
+	"mixins": [
+		"iekei.mixins.json",
+		"iekeiclient.mixins.json",
+		"iekeiclient-trouser.mixins.json",
+		"iekeiclient-shama.mixins.json",
+		"iekeiclient-shama-optional.mixins.json",
+		"iekeiclient-shama-baritone.mixins.json",
+		"iekeiclient-seijaprinter.mixins.json",
+		"iekeiclient-rejects.mixins.json",
+		"iekeiclient-rejects-iekei.mixins.json",
+		"iekeiclient-baritone.mixins.json",
+		"iekeiclient-indigo.mixins.json",
+		"iekeiclient-lithium.mixins.json",
+		"iekeiclient-sodium.mixins.json",
+		"iekeiclient-viafabricplus.mixins.json"
+	],
+	"accessWidener": "iekei.accesswidener",
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"fabric-api": "*",
+		"minecraft": "1.21.11",
+		"malilib": "*",
+		"litematica": "*"
+	}
+}

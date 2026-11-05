@@ -1,0 +1,27 @@
+{
+  "required": true,
+  "package": "com.iekeiclient.addons.trouserstreak.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "AbstractBlockMixin",
+    "AbstractBoatEntityMixin",
+    "AbstractSignEditScreenMixin",
+    "AnvilScreenHandlerMixin",
+    "AnvilScreenMixin",
+    "ClientCommonPacketListenerImplMixin",
+    "LoadingTerrainScreenMixin",
+    "PacketCodecsMixin",
+    "PlayerEntityMixin",
+    "StringEncodingMixin",
+    "TelemetryManagerMixin",
+    "TranslatableContentsMixin",
+    "TrouserHandshakeC2SMixin",
+    "TrouserSplashTextMixin",
+    "accessor.ClientConnectionAccessor"
+  ]
+}

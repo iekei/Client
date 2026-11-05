@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "com.iekeiclient.engine.mixin.viafabricplus",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.iekeiclient.engine.MixinPlugin",
+  "client": [
+    "GeneralSettingsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
