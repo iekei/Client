@@ -18,18 +18,18 @@ public class MServerInfo {
     public int protocolVersion = SharedConstants.getGameVersion().protocolVersion();
     public String version = null;
     public List<Text> playerListSummary = Collections.emptyList();
-    private byte @Nullable [] icon;
+    private @Nullable byte [] icon;
 
     public MServerInfo(String name, String address) {
         this.name = name;
         this.address = address;
     }
 
-    public byte @Nullable [] getIcon() {
+    public @Nullable byte [] getIcon() {
         return this.icon;
     }
 
-    public void setIcon(byte @Nullable [] bytes) {
+    public void setIcon(@Nullable byte [] bytes) {
         this.icon = bytes;
     }
 }

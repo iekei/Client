@@ -3,7 +3,7 @@ package com.iekeiclient.addons.bhclient.utils;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.engine.utils.network.Http;
 
 import java.net.http.HttpResponse;
@@ -79,7 +79,7 @@ public class WebhookManager {
 
         Payload payload = new Payload(url, GSON.toJson(body));
         if (!queue.offer(payload)) {
-            BaseHuntingAddon.LOG.warn("Webhook queue is full, dropping message.");
+            IekeiBaseHuntingAddon.LOG.warn("Webhook queue is full, dropping message.");
             return false;
         }
 
@@ -123,7 +123,7 @@ public class WebhookManager {
                 Thread.currentThread().interrupt();
                 return;
             } catch (Exception e) {
-                BaseHuntingAddon.LOG.error("Error while sending webhook", e);
+                IekeiBaseHuntingAddon.LOG.error("Error while sending webhook", e);
             }
         }
     }
@@ -137,7 +137,7 @@ public class WebhookManager {
         for (int attempt = 0; attempt < 3; attempt++) {
             HttpResponse<String> response = Http.post(payload.url())
                 .bodyJson(payload.body())
-                .exceptionHandler(e -> BaseHuntingAddon.LOG.warn("Webhook request failed: {}", e.getMessage()))
+                .exceptionHandler(e -> IekeiBaseHuntingAddon.LOG.warn("Webhook request failed: {}", e.getMessage()))
                 .sendStringResponse();
 
             int status = response.statusCode();
@@ -165,7 +165,7 @@ public class WebhookManager {
             }
 
             if (status == Http.NOT_FOUND || status == Http.UNAUTHORIZED || status == Http.FORBIDDEN || status == Http.BAD_REQUEST) {
-                BaseHuntingAddon.LOG.warn("Webhook rejected with status {}, check the URL.", status);
+                IekeiBaseHuntingAddon.LOG.warn("Webhook rejected with status {}, check the URL.", status);
                 return;
             }
 

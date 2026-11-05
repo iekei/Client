@@ -1,7 +1,7 @@
 package com.iekeiclient.addons.bhclient.commands;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.iekeiclient.addons.bhclient.modules.BaseHunter;
+import com.iekeiclient.addons.bhclient.modules.IekeiBaseHunter;
 import com.iekeiclient.addons.bhclient.modules.IekeiBaseHunterV2;
 import com.iekeiclient.addons.bhclient.modules.NewChunks;
 import com.iekeiclient.addons.bhclient.modules.PlayerLogger;
@@ -89,7 +89,7 @@ public class BaseHuntCommand extends Command {
         );
 
         builder.then(literal("stop").executes(context -> {
-            BaseHunter hunter = Modules.get().get(BaseHunter.class);
+            IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
             if (hunter != null && hunter.isActive()) {
                 hunter.disable();
                 info("Base Hunter stopped.");
@@ -103,7 +103,7 @@ public class BaseHuntCommand extends Command {
 
         builder.then(literal("waypoint")
             .then(literal("add").executes(context -> {
-                BaseHunter hunter = Modules.get().get(BaseHunter.class);
+                IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
                 if (hunter == null || mc.player == null) return SINGLE_SUCCESS;
 
                 hunter.addWaypoint(mc.player.getBlockPos());
@@ -114,7 +114,7 @@ public class BaseHuntCommand extends Command {
                 .then(argument("x", integer())
                     .then(argument("z", integer())
                         .executes(context -> {
-                            BaseHunter hunter = Modules.get().get(BaseHunter.class);
+                            IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
                             if (hunter == null) return SINGLE_SUCCESS;
 
                             hunter.addWaypoint(new BlockPos(getInteger(context, "x"), 64, getInteger(context, "z")));
@@ -125,7 +125,7 @@ public class BaseHuntCommand extends Command {
                 )
             )
             .then(literal("clear").executes(context -> {
-                BaseHunter hunter = Modules.get().get(BaseHunter.class);
+                IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
                 if (hunter != null) hunter.clearWaypoints();
                 info("Waypoints cleared.");
                 return SINGLE_SUCCESS;
@@ -203,7 +203,7 @@ public class BaseHuntCommand extends Command {
     }
 
     private void flyTo(int x, int z) {
-        BaseHunter hunter = Modules.get().get(BaseHunter.class);
+        IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
         if (hunter == null) {
             error("Base Hunter module is unavailable.");
             return;
@@ -242,7 +242,7 @@ public class BaseHuntCommand extends Command {
             info("Players: %d on this server", tracker.forCurrentServer().size());
         }
 
-        BaseHunter hunter = Modules.get().get(BaseHunter.class);
+        IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
         if (hunter != null && hunter.isActive()) {
             BlockPos destination = hunter.getCurrentDestination();
             info("Autopilot: %s, destination %s, flown %,d blocks",

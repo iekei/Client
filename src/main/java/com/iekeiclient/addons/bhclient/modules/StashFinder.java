@@ -1,6 +1,6 @@
 package com.iekeiclient.addons.bhclient.modules;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.systems.StashManager;
 import com.iekeiclient.addons.bhclient.utils.BaritoneHelper;
 import com.iekeiclient.addons.bhclient.utils.ServerUtils;
@@ -202,7 +202,7 @@ public class StashFinder extends Module {
     private long secondStart;
 
     public StashFinder() {
-        super(BaseHuntingAddon.CATEGORY, "stash-finder", "Finds stashes and bases by counting storage containers in loaded chunks.");
+        super(IekeiBaseHuntingAddon.CATEGORY, "stash-finder", "Finds stashes and bases by counting storage containers in loaded chunks.");
     }
 
     @Override

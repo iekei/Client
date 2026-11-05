@@ -1,7 +1,7 @@
 package com.iekeiclient.addons.bhclient.modules;
 
 import baritone.api.Settings;
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.systems.StashManager;
 import com.iekeiclient.addons.bhclient.utils.BaritoneHelper;
 import com.iekeiclient.addons.bhclient.utils.ServerUtils;
@@ -42,7 +42,7 @@ import java.util.List;
  * <p>Sweep patterns exist because flying in a straight line forever misses almost everything. A grid or
  * spiral sweep guarantees a bounded search area is covered systematically instead of relying on luck.
  */
-public class BaseHunter extends Module {
+public class IekeiBaseHunter extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgRoute = settings.createGroup("Route");
     private final SettingGroup sgSafety = settings.createGroup("Safety");
@@ -300,8 +300,8 @@ public class BaseHunter extends Module {
 
 
 
-    public BaseHunter() {
-        super(BaseHuntingAddon.CATEGORY, "base-hunter", "Baritone powered elytra autopilot for sweeping anarchy servers for bases.");
+    public IekeiBaseHunter() {
+        super(IekeiBaseHuntingAddon.CATEGORY, "base-hunter", "Baritone powered elytra autopilot for sweeping anarchy servers for bases.");
     }
 
     @Override

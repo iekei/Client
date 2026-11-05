@@ -34,7 +34,7 @@ public class ByteCountDataOutput implements DataOutput {
     }
 
     @Override
-    public void write(byte @NotNull [] b, int off, int len) throws IOException {
+    public void write(@NotNull byte [] b, int off, int len) throws IOException {
         count += len;
     }
 

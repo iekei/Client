@@ -1,6 +1,6 @@
 package com.iekeiclient.addons.bhclient.modules;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.systems.StashManager;
 import com.iekeiclient.addons.bhclient.utils.ServerUtils;
 import com.iekeiclient.addons.bhclient.utils.WebhookManager;
@@ -16,7 +16,7 @@ import com.iekeiclient.engine.settings.IntSetting;
 import com.iekeiclient.engine.settings.Setting;
 import com.iekeiclient.engine.settings.SettingGroup;
 import com.iekeiclient.engine.systems.modules.Module;
-import com.iekeiclient.engine.utils.network.MeteorExecutor;
+import com.iekeiclient.engine.utils.network.IekeiExecutor;
 import com.iekeiclient.engine.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.entity.BlockEntity;
@@ -267,7 +267,7 @@ public class NewChunks extends Module {
     private long lastCleanup;
 
     public NewChunks() {
-        super(BaseHuntingAddon.CATEGORY, "new-chunks", "Detects chunks generated after the world was created, revealing player activity.");
+        super(IekeiBaseHuntingAddon.CATEGORY, "new-chunks", "Detects chunks generated after the world was created, revealing player activity.");
     }
 
     @Override
@@ -298,11 +298,11 @@ public class NewChunks extends Module {
 
         // The chunk is still being populated while this event fires, so the scan is deferred by a tick
         // to let the client finish filling in light and block entity data.
-        MeteorExecutor.execute(() -> {
+        IekeiExecutor.execute(() -> {
             try {
                 evaluate(chunk, pos, key);
             } catch (Exception e) {
-                BaseHuntingAddon.LOG.debug("Chunk scan failed for {}", pos, e);
+                IekeiBaseHuntingAddon.LOG.debug("Chunk scan failed for {}", pos, e);
             } finally {
                 pendingScan.remove(key);
             }

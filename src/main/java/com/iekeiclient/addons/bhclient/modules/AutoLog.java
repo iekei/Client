@@ -1,6 +1,6 @@
 package com.iekeiclient.addons.bhclient.modules;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.utils.BaritoneHelper;
 import com.iekeiclient.addons.bhclient.utils.ServerUtils;
 import com.iekeiclient.addons.bhclient.utils.WebhookManager;
@@ -154,7 +154,7 @@ public class AutoLog extends Module {
     private String triggerReason;
 
     public AutoLog() {
-        super(BaseHuntingAddon.CATEGORY, "auto-log", "Automatically disconnects when you are in danger and reports it.");
+        super(IekeiBaseHuntingAddon.CATEGORY, "auto-log", "Automatically disconnects when you are in danger and reports it.");
     }
 
     @Override

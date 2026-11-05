@@ -1,6 +1,6 @@
 package com.iekeiclient.addons.bhclient.modules;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.systems.StashManager;
 import com.iekeiclient.addons.bhclient.utils.ElytraController;
 import com.iekeiclient.addons.bhclient.utils.ElytraManager;
@@ -37,7 +37,7 @@ import java.util.Set;
 /**
  * Second generation base hunter: no fireworks, faster and reactive.
  *
- * <p>Where {@link BaseHunter} flies a fixed pattern using Baritone's elytra pathfinder, this module flies
+ * <p>Where {@link IekeiBaseHunter} flies a fixed pattern using Baritone's elytra pathfinder, this module flies
  * itself. That difference is what removes the firework requirement: Baritone's elytra pathfinder plans
  * around rocket propulsion and lands when rockets run out, while {@link ElytraController} drives Meteor's
  * ElytraFly in Bounce mode, which recasts the elytra every tick and sustains flight indefinitely without
@@ -324,14 +324,14 @@ public class IekeiBaseHunterV2 extends Module {
     private boolean warnedNotFlying;
 
     public IekeiBaseHunterV2() {
-        super(BaseHuntingAddon.CATEGORY, "base-hunter-v2",
+        super(IekeiBaseHuntingAddon.CATEGORY, "base-hunter-v2",
             "Firework-free elytra base hunter. Flies itself and reacts to new chunk detections.");
     }
 
     @Override
     public void onActivate() {
         if (stopV1.get()) {
-            BaseHunter v1 = Modules.get().get(BaseHunter.class);
+            IekeiBaseHunter v1 = Modules.get().get(IekeiBaseHunter.class);
             if (v1 != null && v1.isActive()) v1.disable();
         }
 

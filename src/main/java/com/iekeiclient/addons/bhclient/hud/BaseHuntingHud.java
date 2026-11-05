@@ -1,7 +1,7 @@
 package com.iekeiclient.addons.bhclient.hud;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
-import com.iekeiclient.addons.bhclient.modules.BaseHunter;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.modules.IekeiBaseHunter;
 import com.iekeiclient.addons.bhclient.modules.NewChunks;
 import com.iekeiclient.addons.bhclient.systems.PlayerTracker;
 import com.iekeiclient.addons.bhclient.systems.StashManager;
@@ -17,7 +17,7 @@ import com.iekeiclient.engine.systems.modules.Modules;
 import com.iekeiclient.engine.utils.render.color.SettingColor;
 import net.minecraft.item.Items;
 
-import static com.iekeiclient.engine.MeteorClient.mc;
+import static com.iekeiclient.engine.IekeiClient.mc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +25,7 @@ import java.util.List;
 /** Compact status readout so the important numbers are visible while flying. */
 public class BaseHuntingHud extends HudElement {
     public static final HudElementInfo<BaseHuntingHud> INFO = new HudElementInfo<>(
-        BaseHuntingAddon.HUD_GROUP,
+        IekeiBaseHuntingAddon.HUD_GROUP,
         "base-hunting",
         "Shows new chunk, stash and autopilot status.",
         BaseHuntingHud::new
@@ -149,7 +149,7 @@ public class BaseHuntingHud extends HudElement {
             lines.add("Players: %d".formatted(tracker.forCurrentServer().size()));
         }
 
-        BaseHunter hunter = Modules.get().get(BaseHunter.class);
+        IekeiBaseHunter hunter = Modules.get().get(IekeiBaseHunter.class);
         if (showAutopilot.get() && hunter != null && hunter.isActive()) {
             var destination = hunter.getCurrentDestination();
 

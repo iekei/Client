@@ -1,6 +1,6 @@
 package com.iekeiclient.addons.bhclient.modules;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.systems.PlayerTracker;
 import com.iekeiclient.addons.bhclient.systems.StashManager;
 import com.iekeiclient.addons.bhclient.utils.ServerUtils;
@@ -142,7 +142,7 @@ public class WebhookNotifier extends Module {
     private int sessionDeaths;
 
     public WebhookNotifier() {
-        super(BaseHuntingAddon.CATEGORY, "webhook-notifier", "Sends session and player events to a Discord webhook.");
+        super(IekeiBaseHuntingAddon.CATEGORY, "webhook-notifier", "Sends session and player events to a Discord webhook.");
     }
 
     public boolean isMuted() {

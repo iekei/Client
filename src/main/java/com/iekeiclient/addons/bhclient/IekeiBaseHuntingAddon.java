@@ -36,7 +36,7 @@ public class IekeiBaseHuntingAddon extends IekeiAddon {
         Systems.add(new StashManager());
         Systems.add(new PlayerTracker());
 
-        Modules.get().add(new BaseHunter());
+        Modules.get().add(new IekeiBaseHunter());
         Modules.get().add(new IekeiBaseHunterV2());
         Modules.get().add(new NewChunks());
         Modules.get().add(new StashFinder());

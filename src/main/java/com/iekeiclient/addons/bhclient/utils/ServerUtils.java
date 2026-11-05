@@ -1,7 +1,8 @@
 package com.iekeiclient.addons.bhclient.utils;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
-import com.iekeiclient.engine.MeteorClient;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
+import com.iekeiclient.engine.IekeiClient;
+import com.iekeiclient.engine.IekeiClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.world.World;
@@ -12,7 +13,7 @@ public final class ServerUtils {
     }
 
     public static MinecraftClient mc() {
-        return MeteorClient.mc;
+        return IekeiClient.mc;
     }
 
     /** Singleplayer worlds report no server entry, so fall back to a readable label. */
@@ -73,6 +74,6 @@ public final class ServerUtils {
     }
 
     public static void log(String message) {
-        BaseHuntingAddon.LOG.info(message);
+        IekeiBaseHuntingAddon.LOG.info(message);
     }
 }

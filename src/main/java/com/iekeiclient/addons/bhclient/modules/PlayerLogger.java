@@ -1,6 +1,6 @@
 package com.iekeiclient.addons.bhclient.modules;
 
-import com.iekeiclient.addons.bhclient.BaseHuntingAddon;
+import com.iekeiclient.addons.bhclient.IekeiBaseHuntingAddon;
 import com.iekeiclient.addons.bhclient.systems.PlayerTracker;
 import com.iekeiclient.addons.bhclient.utils.ServerUtils;
 import com.iekeiclient.addons.bhclient.utils.WebhookManager;
@@ -156,7 +156,7 @@ public class PlayerLogger extends Module {
     private long lastRefresh;
 
     public PlayerLogger() {
-        super(BaseHuntingAddon.CATEGORY, "player-logger", "Records where players were last seen and where they logged out.");
+        super(IekeiBaseHuntingAddon.CATEGORY, "player-logger", "Records where players were last seen and where they logged out.");
     }
 
     @Override
