@@ -11,6 +11,7 @@ import com.iekeiclient.gui.api.page.Page;
 import com.iekeiclient.gui.api.page.impl.RightTransition;
 import com.iekeiclient.gui.modmenu.component.SettingBar;
 import com.iekeiclient.management.mod.Mod;
+import com.iekeiclient.management.mod.IekeiMod;
 import com.iekeiclient.management.mod.settings.Setting;
 import com.iekeiclient.skia.Skia;
 import com.iekeiclient.skia.font.Icon;
@@ -36,9 +37,14 @@ public class SettingsImplPage extends Page {
 
 		bars.clear();
 
-		for (Setting s : Iekei.getInstance().getModManager().getSettingsByMod(mod)) {
-			SettingBar bar = new SettingBar(s, x + 32, y + 32, width - 64);
-			bars.add(bar);
+		if (mod instanceof IekeiMod iekeiMod) {
+			for (com.iekeiclient.engine.settings.Setting<?> setting : iekeiMod.getSettings()) {
+				bars.add(new SettingBar(setting, x + 32, y + 32, width - 64));
+			}
+		} else {
+			for (Setting setting : Iekei.getInstance().getModManager().getSettingsByMod(mod)) {
+				bars.add(new SettingBar(setting, x + 32, y + 32, width - 64));
+			}
 		}
 
 		parent.setClosable(false);
@@ -56,6 +62,9 @@ public class SettingsImplPage extends Page {
 		Skia.translate(0, scrollHelper.getValue());
 
 		for (SettingBar b : bars) {
+			if (!b.isVisible()) {
+				continue;
+			}
 
 			if (!searchBar.getText().isEmpty() && !SearchUtils.isSimilar(I18n.get(b.getTitle()), searchBar.getText())) {
 				continue;
@@ -80,6 +89,9 @@ public class SettingsImplPage extends Page {
 		searchBar.mousePressed(mouseX, mouseY, button);
 
 		for (SettingBar b : bars) {
+			if (!b.isVisible()) {
+				continue;
+			}
 
 			if (!searchBar.getText().isEmpty() && !SearchUtils.isSimilar(I18n.get(b.getTitle()), searchBar.getText())) {
 				continue;
@@ -98,6 +110,9 @@ public class SettingsImplPage extends Page {
 		searchBar.mousePressed(mouseX, mouseY, button);
 
 		for (SettingBar b : bars) {
+			if (!b.isVisible()) {
+				continue;
+			}
 
 			if (!searchBar.getText().isEmpty() && !SearchUtils.isSimilar(I18n.get(b.getTitle()), searchBar.getText())) {
 				continue;
@@ -112,6 +127,9 @@ public class SettingsImplPage extends Page {
 		super.charTyped(chr, modifiers);
 
 		for (SettingBar b : bars) {
+			if (!b.isVisible()) {
+				continue;
+			}
 
 			if (!searchBar.getText().isEmpty() && !SearchUtils.isSimilar(I18n.get(b.getTitle()), searchBar.getText())) {
 				continue;

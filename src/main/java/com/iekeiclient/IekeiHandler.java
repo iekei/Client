@@ -11,6 +11,7 @@ import com.iekeiclient.management.profile.Profile;
 public class IekeiHandler {
 
 	public final EventBus.EventListener<ClientTickEvent> onClientTick = event -> {
+		Iekei.getInstance().getModManager().registerIekeiModules();
 		Iekei.getInstance().getColorManager().onTick();
 		Iekei.getInstance().getHypixelManager().update();
 		Iekei.getInstance().getUserManager().update();

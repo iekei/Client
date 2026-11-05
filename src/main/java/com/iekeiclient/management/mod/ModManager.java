@@ -10,6 +10,8 @@ import com.iekeiclient.management.mod.api.hud.design.impl.ClassicDesign;
 import com.iekeiclient.management.mod.api.hud.design.impl.ClearDesign;
 import com.iekeiclient.management.mod.api.hud.design.impl.MaterialYouDesign;
 import com.iekeiclient.management.mod.api.hud.design.impl.SimpleDesign;
+import com.iekeiclient.management.mod.impl.hud.ActiveModulesMod;
+import com.iekeiclient.management.mod.impl.hud.ArmorStatusMod;
 import com.iekeiclient.management.mod.impl.hud.BedwarsStatsOverlayMod;
 import com.iekeiclient.management.mod.impl.hud.BossBarMod;
 import com.iekeiclient.management.mod.impl.hud.ClockMod;
@@ -62,12 +64,14 @@ import com.iekeiclient.management.mod.impl.settings.ModMenuSettings;
 import com.iekeiclient.management.mod.impl.settings.SystemSettings;
 import com.iekeiclient.management.mod.settings.Setting;
 import com.iekeiclient.management.mod.settings.impl.KeybindSetting;
+import com.iekeiclient.engine.systems.modules.Modules;
 
 public class ModManager {
 
 	private List<Mod> mods = new ArrayList<>();
 	private List<Setting> settings = new ArrayList<>();
 	private List<HUDDesign> designs = new ArrayList<>();
+	private boolean iekeiModulesRegistered;
 
 	private HUDDesign currentDesign;
 
@@ -79,6 +83,8 @@ public class ModManager {
 	private void initMods() {
 
 		// HUD
+		mods.add(new ActiveModulesMod());
+		mods.add(new ArmorStatusMod());
 		mods.add(new BedwarsStatsOverlayMod());
 		mods.add(new BossBarMod());
 		mods.add(new ClockMod());
@@ -138,6 +144,20 @@ public class ModManager {
 		mods.add(new ModMenuSettings());
 		mods.add(new SystemSettings());
 
+		registerIekeiModules();
+		sortMods();
+	}
+
+	public void registerIekeiModules() {
+		if (iekeiModulesRegistered || Modules.get() == null) {
+			return;
+		}
+
+		for (com.iekeiclient.engine.systems.modules.Module module : Modules.get().getAll()) {
+			mods.add(new IekeiMod(module));
+		}
+
+		iekeiModulesRegistered = true;
 		sortMods();
 	}
 
@@ -150,6 +170,7 @@ public class ModManager {
 	}
 
 	public List<Mod> getMods() {
+		registerIekeiModules();
 		return mods;
 	}
 

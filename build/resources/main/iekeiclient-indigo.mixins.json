@@ -1,0 +1,10 @@
+{
+  "required": false,
+  "package": "com.iekeiclient.engine.mixin.indigo",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.iekeiclient.engine.MixinPlugin",
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

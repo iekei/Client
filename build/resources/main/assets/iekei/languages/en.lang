@@ -3,8 +3,11 @@
 #
 text.all=All
 text.hud=HUD
+text.combat=Combat
 text.render=Render
 text.player=Player
+text.movement=Movement
+text.world=World
 text.misc=Misc
 text.home=Home
 text.mods=Mods
@@ -18,6 +21,7 @@ text.name=Name
 text.serveraddress=Server Address
 text.createprofile=Create Profile
 text.icon=Icon
+text.armor=Armor
 
 design.simple=Simple
 design.classic=Classic
@@ -26,6 +30,12 @@ design.materialyou=MaterialYou
 
 mod.hudsettings.name=HUD
 mod.hudsettings.description=Customizing the HUD
+
+mod.activemodules.name=Active Modules
+mod.activemodules.description=Display enabled non-HUD modules on screen
+
+mod.armorstatus.name=Armor Status
+mod.armorstatus.description=Display the remaining durability of your armor
 
 mod.modmenu.name=Mod Menu
 mod.modmenu.description=Customize Mod Menu related settings
@@ -181,6 +191,8 @@ setting.darkmode=Dark Mode
 setting.darkmode.description=Enable dark mode
 setting.keybind=Keybind
 setting.keybind.description=Set keybind
+setting.includehudmodules=Include HUD Modules
+setting.includehudmodules.description=Show enabled HUD modules in the active modules list
 setting.icon=Icon
 setting.icon.description=Set the icon to display
 setting.color=Color

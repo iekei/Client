@@ -1,0 +1,12 @@
+/*
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
+ */
+
+package com.iekeiclient.engine.mixininterface;
+
+public interface IRenderPipeline {
+    void iekei$setLineSmooth(boolean lineSmooth);
+
+    boolean iekei$getLineSmooth();
+}

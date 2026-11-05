@@ -2,18 +2,37 @@
 	"schemaVersion": 1,
 	"id": "iekeiclient",
 	"version": "${version}",
-	"name": "iekeiclient",
+	"name": "Iekei Client",
 	"description": "Modern and powerful client for Minecraft PvP",
+	"license": "GPL-3.0",
 	"authors": [
 		"EldoDebug"
 	],
 	"contact": {
 		"homepage": "https://iekeiclient.com/"
 	},
+	"custom": {
+		"iekeiclient:build_number": "local"
+	},
 	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"com.iekeiclient.engine.IekeiClient"
+		],
+		"modmenu": [
+			"com.iekeiclient.engine.modintegration.ModMenuIntegration"
+		]
+	},
 	"mixins": [
-		"iekei.mixins.json"
+		"iekei.mixins.json",
+		"iekeiclient.mixins.json",
+		"iekeiclient-baritone.mixins.json",
+		"iekeiclient-indigo.mixins.json",
+		"iekeiclient-lithium.mixins.json",
+		"iekeiclient-sodium.mixins.json",
+		"iekeiclient-viafabricplus.mixins.json"
 	],
+	"accessWidener": "iekei.accesswidener",
 	"depends": {
 		"fabricloader": ">=0.18.4",
 		"fabric-api": "*",

@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.iekeiclient.engine.mixin.baritone",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.iekeiclient.engine.MixinPlugin",
+  "client": [
+    "ComeCommandMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

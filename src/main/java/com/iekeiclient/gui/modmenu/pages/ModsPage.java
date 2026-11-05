@@ -13,10 +13,14 @@ import com.iekeiclient.gui.api.page.impl.LeftRightTransition;
 import com.iekeiclient.gui.api.page.impl.RightLeftTransition;
 import com.iekeiclient.management.color.api.ColorPalette;
 import com.iekeiclient.management.mod.Mod;
+import com.iekeiclient.management.mod.ModCategory;
+import com.iekeiclient.management.mod.IekeiMod;
 import com.iekeiclient.skia.Skia;
 import com.iekeiclient.skia.font.Fonts;
 import com.iekeiclient.skia.font.Icon;
 import com.iekeiclient.ui.component.api.PressAnimation;
+import com.iekeiclient.ui.component.handler.impl.ComboButtonHandler;
+import com.iekeiclient.ui.component.impl.ComboButton;
 import com.iekeiclient.utils.ColorUtils;
 import com.iekeiclient.utils.SearchUtils;
 import com.iekeiclient.utils.language.I18n;
@@ -25,9 +29,24 @@ import com.iekeiclient.utils.mouse.MouseUtils;
 public class ModsPage extends Page {
 
 	private List<Item> items = new ArrayList<>();
+	private ModCategory selectedCategory = ModCategory.ALL;
+	private ComboButton categoryButton;
 
 	public ModsPage(IekeiGui parent) {
 		super(parent, "text.mods", Icon.INVENTORY_2, new RightLeftTransition(true));
+		categoryButton = new ComboButton(0, 0, ModCategory.getTitles(), selectedCategory.getTitle());
+		categoryButton.setHandler(new ComboButtonHandler() {
+			@Override
+			public void onChanged(String option) {
+				for (ModCategory category : ModCategory.values()) {
+					if (category.getTitle().equals(option)) {
+						selectedCategory = category;
+						scrollHelper.reset();
+						break;
+					}
+				}
+			}
+		});
 	}
 
 	@Override
@@ -67,6 +86,9 @@ public class ModsPage extends Page {
 
 		Skia.save();
 		Skia.translate(0, scrollHelper.getValue());
+		categoryButton.setX(x + 32);
+		categoryButton.setY(y + 32);
+		categoryButton.draw(mouseX, mouseY);
 
 		for (Item i : items) {
 
@@ -76,6 +98,10 @@ public class ModsPage extends Page {
 			SimpleAnimation yAnimation = i.yAnimation;
 
 			if (m.isHidden()) {
+				continue;
+			}
+
+			if (selectedCategory != ModCategory.ALL && m.getCategory() != selectedCategory) {
 				continue;
 			}
 
@@ -127,6 +153,7 @@ public class ModsPage extends Page {
 	@Override
 	public void mousePressed(double mouseX, double mouseY, int button) {
 		super.mousePressed(mouseX, mouseY, button);
+		categoryButton.mousePressed(mouseX, mouseY - scrollHelper.getValue(), button);
 
 		for (Item i : items) {
 
@@ -134,6 +161,10 @@ public class ModsPage extends Page {
 			float itemY = i.yAnimation.getValue();
 
 			if (i.mod.isHidden()) {
+				continue;
+			}
+
+			if (selectedCategory != ModCategory.ALL && i.mod.getCategory() != selectedCategory) {
 				continue;
 			}
 
@@ -155,6 +186,7 @@ public class ModsPage extends Page {
 	public void mouseReleased(double mouseX, double mouseY, int button) {
 
 		mouseY = mouseY - scrollHelper.getValue();
+		categoryButton.mouseReleased(mouseX, mouseY, button);
 
 		for (Item i : items) {
 
@@ -163,6 +195,10 @@ public class ModsPage extends Page {
 			float itemY = i.yAnimation.getValue();
 
 			if (i.mod.isHidden()) {
+				continue;
+			}
+
+			if (selectedCategory != ModCategory.ALL && m.getCategory() != selectedCategory) {
 				continue;
 			}
 
@@ -183,8 +219,12 @@ public class ModsPage extends Page {
 					}
 				}
 
-				if (MouseUtils.isInside(mouseX, mouseY, itemX, itemY, 244, 116)
-						&& !Iekei.getInstance().getModManager().getSettingsByMod(m).isEmpty()) {
+				boolean hasSettings = !Iekei.getInstance().getModManager().getSettingsByMod(m).isEmpty();
+				if (m instanceof IekeiMod iekeiMod) {
+					hasSettings = !iekeiMod.getSettings().isEmpty();
+				}
+
+				if (MouseUtils.isInside(mouseX, mouseY, itemX, itemY, 244, 116) && hasSettings) {
 					parent.setCurrentPage(new SettingsImplPage(parent, this.getClass(), m));
 					this.setTransition(new LeftRightTransition(true));
 				}

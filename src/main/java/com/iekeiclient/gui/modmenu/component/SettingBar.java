@@ -16,6 +16,7 @@ import com.iekeiclient.management.mod.settings.impl.NumberSetting;
 import com.iekeiclient.management.mod.settings.impl.StringSetting;
 import com.iekeiclient.skia.Skia;
 import com.iekeiclient.skia.font.Fonts;
+import com.iekeiclient.skia.font.Icon;
 import com.iekeiclient.ui.component.Component;
 import com.iekeiclient.ui.component.handler.impl.ComboButtonHandler;
 import com.iekeiclient.ui.component.handler.impl.FileSelectorHandler;
@@ -34,12 +35,17 @@ import com.iekeiclient.ui.component.impl.text.TextField;
 import com.iekeiclient.utils.language.I18n;
 
 import net.minecraft.client.util.InputUtil;
+import com.iekeiclient.engine.settings.BoolSetting;
+import com.iekeiclient.engine.settings.DoubleSetting;
+import com.iekeiclient.engine.settings.EnumSetting;
+import com.iekeiclient.engine.settings.IntSetting;
 
 public class SettingBar extends Component {
 
 	private SimpleAnimation yAnimation = new SimpleAnimation();
 	private String title, description, icon;
 	private Component component;
+	private com.iekeiclient.engine.settings.Setting<?> engineSetting;
 
 	public SettingBar(Setting setting, float x, float y, float width) {
 		super(x, y);
@@ -168,6 +174,88 @@ public class SettingBar extends Component {
 		}
 	}
 
+	public SettingBar(com.iekeiclient.engine.settings.Setting<?> setting, float x, float y, float width) {
+		super(x, y);
+		this.engineSetting = setting;
+		this.title = setting.title;
+		this.description = setting.description;
+		this.icon = Icon.SETTINGS;
+		this.width = width;
+		this.height = 68;
+
+		if (setting instanceof BoolSetting) {
+			Switch switchComp = new Switch(x, y, (Boolean) setting.get());
+			switchComp.setHandler(new SwitchHandler() {
+				@Override
+				public void onEnabled() {
+					setting.parse("true");
+				}
+
+				@Override
+				public void onDisabled() {
+					setting.parse("false");
+				}
+			});
+			component = switchComp;
+		} else if (setting instanceof IntSetting intSetting
+				&& !intSetting.noSlider
+				&& isSliderRangeValid(intSetting.sliderMin, intSetting.sliderMax)) {
+			Slider slider = new Slider(0, 0, 200, intSetting.get(), intSetting.sliderMin, intSetting.sliderMax, 1);
+			slider.setHandler(new SliderHandler() {
+				@Override
+				public void onValueChanged(float value) {
+					setting.parse(Integer.toString(Math.round(value)));
+				}
+			});
+			component = slider;
+		} else if (setting instanceof DoubleSetting doubleSetting
+				&& !doubleSetting.noSlider
+				&& isSliderRangeValid(doubleSetting.sliderMin, doubleSetting.sliderMax)) {
+			float step = (float) Math.pow(10, -Math.max(0, Math.min(doubleSetting.decimalPlaces, 6)));
+			Slider slider = new Slider(0, 0, 200, doubleSetting.get().floatValue(), (float) doubleSetting.sliderMin,
+				(float) doubleSetting.sliderMax, step);
+			slider.setHandler(new SliderHandler() {
+				@Override
+				public void onValueChanged(float value) {
+					setting.parse(Float.toString(value));
+				}
+			});
+			component = slider;
+		} else if (setting instanceof EnumSetting<?>) {
+			java.util.List<String> options = new java.util.ArrayList<>();
+			for (String option : setting.getSuggestions()) {
+				options.add(option);
+			}
+			if (!options.isEmpty()) {
+				String selected = setting.get().toString();
+				ComboButton button = new ComboButton(0, 0, options, selected);
+				button.setHandler(new ComboButtonHandler() {
+					@Override
+					public void onChanged(String option) {
+						setting.parse(option);
+					}
+				});
+				component = button;
+			}
+		}
+
+		if (component == null) {
+			String value = setting.get() == null ? "" : setting.get().toString();
+			TextField textField = new TextField(0, 0, 150, value);
+			textField.setHandler(new TextHandler() {
+				@Override
+				public void onTyped(String value) {
+					setting.parse(value);
+				}
+			});
+			component = textField;
+		}
+	}
+
+	private static boolean isSliderRangeValid(double min, double max) {
+		return Double.isFinite(min) && Double.isFinite(max) && max > min;
+	}
+
 	@Override
 	public void draw(double mouseX, double mouseY) {
 
@@ -235,5 +323,9 @@ public class SettingBar extends Component {
 
 	public String getIcon() {
 		return icon;
+	}
+
+	public boolean isVisible() {
+		return engineSetting == null || engineSetting.isVisible();
 	}
 }
