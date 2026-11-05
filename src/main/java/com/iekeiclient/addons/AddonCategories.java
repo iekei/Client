@@ -11,7 +11,7 @@ public final class AddonCategories {
 	public static final Category SALC1_ADDON = new Category("salc1-iekei-addon", Items.CHEST.getDefaultStack());
 	public static final Category VILLAGER_ROLLER = new Category("iekei-villager-roller", Items.EMERALD.getDefaultStack());
 	public static final Category REJECTS_V2 = new Category("iekei-rejects-v2", Items.BARRIER.getDefaultStack());
-	public static final Category BASE_HUNTING = new Category("basehuntingclient-baritone", Items.SPYGLASS.getDefaultStack());
+	public static final Category BASE_HUNTING = new Category("iekei-basehuntingclient", Items.SPYGLASS.getDefaultStack());
 
 	private AddonCategories() {
 	}

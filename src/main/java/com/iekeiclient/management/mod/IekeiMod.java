@@ -60,7 +60,7 @@ public class IekeiMod extends Mod {
 			case "salc1-iekei-addon" -> ModCategory.SALC1_ADDON;
 			case "iekei-villager-roller" -> ModCategory.VILLAGER_ROLLER;
 			case "iekei-rejects-v2" -> ModCategory.REJECTS_V2;
-			case "basehuntingclient-baritone" -> ModCategory.BASE_HUNTING;
+			case "iekei-basehuntingclient" -> ModCategory.BASE_HUNTING;
 			case "combat" -> ModCategory.COMBAT;
 			case "player" -> ModCategory.PLAYER;
 			case "movement" -> ModCategory.MOVEMENT;
